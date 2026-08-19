@@ -9,5 +9,6 @@ import './campaign.css';
 import './live.css';
 import './telephony.css';
 import './team.css';
+import './dids.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><AuthGate /></React.StrictMode>);
