@@ -16,7 +16,7 @@
 ## Product implementation — active
 
 The primary application stack is Node.js/TypeScript + React with FreeSWITCH. The earlier
-Python control-plane prototype is deprecated and will be removed after TypeScript parity checks.
+unapproved Python control-plane prototype has been removed; its history remains recoverable in Git.
 
 The setup baseline is not a claim that the complete production dialer is finished. The
 following require implementation and controlled integration testing:
