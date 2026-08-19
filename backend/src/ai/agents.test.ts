@@ -1,0 +1,2 @@
+import assert from 'node:assert/strict';import test from 'node:test';import {AgentRoute,chooseAgent} from './agents.js';
+test('one DID routes to one of multiple available AI agents',()=>{const route=AgentRoute.parse({did:'+14155550100',strategy:'availability',agentIds:['00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002']});assert.equal(chooseAgent(route,[{id:'00000000-0000-4000-8000-000000000001',available:false},{id:'00000000-0000-4000-8000-000000000002',available:true}]),'00000000-0000-4000-8000-000000000002')})
