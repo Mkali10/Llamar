@@ -11,3 +11,8 @@ export async function addRealtimeProvider(token:string,input:{providerKey:string
 export async function testRealtimeProvider(token:string,id:string){return request<RealtimeProvider&{test:{ready:boolean;latencyMs:number;detail:string}}>(`/v1/providers/realtime/${id}/test`,{method:'POST',headers:auth(token)})}
 export async function voiceProfiles(token:string){return request<{items:VoiceProfile[]}>('/v1/ai/voice-profiles',{headers:auth(token)})}
 export async function bindVoiceProvider(token:string,profileId:string,providerConnectionId:string){return request(`/v1/ai/voice-profiles/${profileId}/realtime-provider`,{method:'POST',headers:auth(token),body:JSON.stringify({providerConnectionId})})}
+export type AiAgent={id:string;name:string;languages:string[];maxConcurrentCalls:number;emotionAdaptation:boolean;meetingHandoff:boolean;status:string;voiceProfileId:string;voiceProfileName:string;providerKey:string|null;trainingSourceCount:number};
+export async function aiAgents(token:string){return request<{items:AiAgent[]}>('/v1/ai/agents',{headers:auth(token)})}
+export async function addVoiceProfile(token:string,input:Record<string,unknown>){return request<VoiceProfile>('/v1/ai/voice-profiles',{method:'POST',headers:auth(token),body:JSON.stringify(input)})}
+export async function addAiAgent(token:string,input:Record<string,unknown>){return request<AiAgent>('/v1/ai/agents',{method:'POST',headers:auth(token),body:JSON.stringify(input)})}
+export async function setAiAgentStatus(token:string,id:string,status:string){return request(`/v1/ai/agents/${id}/status`,{method:'POST',headers:auth(token),body:JSON.stringify({status})})}
