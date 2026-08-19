@@ -2,6 +2,8 @@ import Fastify from 'fastify';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import formbody from '@fastify/formbody';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import { z } from 'zod';
 import { validateFlow } from './flows.js';
 import { can, type Principal, verifyToken } from './security.js';
@@ -33,11 +35,11 @@ import {CampaignAgentBind,ResolveRoute,RouteCreate,bindCampaignAgent,createRoute
 
 declare module 'fastify' { interface FastifyRequest { principal: Principal | null } }
 const app=Fastify({logger:true,trustProxy:true,bodyLimit:1_048_576});
-await app.register(helmet); await app.register(rateLimit,{max:120,timeWindow:'1 minute'}); await app.register(formbody);
+await app.register(helmet);await app.register(swagger,{openapi:{info:{title:'Llamar Control Plane',version:'0.3.0'}}});await app.register(swaggerUi,{routePrefix:'/docs'});await app.register(rateLimit,{max:120,timeWindow:'1 minute'});await app.register(formbody);
 app.decorateRequest('principal',null);
 
 app.addHook('preHandler',async(req,reply)=>{
-  if(req.url.startsWith('/health')||req.url.startsWith('/v1/webhooks/')||req.url.startsWith('/v1/twiml/')||req.url==='/v1/freeswitch/xml'||req.url==='/v1/internal/ai-route/resolve'||['/v1/auth/email/request','/v1/auth/email/verify','/v1/auth/refresh'].includes(req.url)) return;
+  if(req.url.startsWith('/health')||req.url.startsWith('/docs')||req.url==='/openapi.json'||req.url.startsWith('/v1/webhooks/')||req.url.startsWith('/v1/twiml/')||req.url==='/v1/freeswitch/xml'||req.url==='/v1/internal/ai-route/resolve'||['/v1/auth/email/request','/v1/auth/email/verify','/v1/auth/refresh'].includes(req.url)) return;
   const [scheme,token]=(req.headers.authorization??'').split(' ');
   if(scheme!=='Bearer'||!token) return reply.code(401).send({error:'bearer token required'});
   try{req.principal=await verifyToken(token);}catch{return reply.code(401).send({error:'invalid or expired token'});}
@@ -45,7 +47,7 @@ app.addHook('preHandler',async(req,reply)=>{
 app.get('/health/live',async()=>({status:'ok'}));
 app.get('/health/ready',async(_req,reply)=>{try{return await databaseReady()?{status:'ready'}:reply.code(503).send({status:'not_ready'})}catch{return reply.code(503).send({status:'not_ready'})}});
 app.get('/v1/auth/me',async req=>req.principal);
-app.post('/v1/auth/email/request',async(req,reply)=>{const parsed=RequestCode.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid request'});try{await withTenant(parsed.data.tenantId,c=>requestLoginCode(c,parsed.data));return reply.code(202).send({accepted:true})}catch(error){req.log.warn(error);return reply.code(429).send({error:'request could not be accepted'})}});
+app.post('/v1/auth/email/request',async(req,reply)=>{const parsed=RequestCode.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid request'});try{const result=await withTenant(parsed.data.tenantId,c=>requestLoginCode(c,parsed.data));return reply.code(202).send({accepted:true,...result})}catch(error){req.log.warn(error);return reply.code(429).send({error:'request could not be accepted'})}});
 app.post('/v1/auth/email/verify',async(req,reply)=>{const parsed=VerifyCode.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid request'});try{return await withTenant(parsed.data.tenantId,c=>verifyLoginCode(c,parsed.data))}catch{return reply.code(401).send({error:'invalid or expired code'})}});
 app.post('/v1/auth/refresh',async(req,reply)=>{const parsed=RefreshRequest.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid request'});try{return await withTenant(parsed.data.tenantId,c=>rotateRefreshToken(c,parsed.data))}catch{return reply.code(401).send({error:'invalid refresh token'})}});
 app.post('/v1/auth/logout',async(req,reply)=>{const parsed=RefreshRequest.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid request'});await withTenant(parsed.data.tenantId,c=>revokeRefreshToken(c,parsed.data.refreshToken));return reply.code(204).send()});
