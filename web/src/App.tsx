@@ -1,5 +1,5 @@
-import {useEffect,useState} from 'react';import {dashboard} from './api';
-const nav = ['Overview', 'Campaigns', 'Live calls', 'Flow builder', 'DIDs & approvals', 'Recordings', 'Reports', 'Team & rights'];
+import {useEffect,useState} from 'react';import {dashboard} from './api';import ProviderSettings from './ProviderSettings';
+const nav = ['Overview', 'Campaigns', 'Live calls', 'Flow builder', 'DIDs & approvals', 'Recordings', 'Reports', 'AI providers', 'Team & rights'];
 const calls = [
   ['A-92814', 'Outbound', '+91•••• 1842', 'Sales follow-up', 'Connected', '04:18'],
   ['A-92813', 'Inbound', '+91•••• 3091', 'Support IVR', 'In queue', '01:42'],
@@ -7,14 +7,15 @@ const calls = [
 ];
 
 export default function App({token}:{token:string}) {
+  const [active,setActive]=useState('Overview');
   const [data,setData]=useState<{totalCalls:number;answeredCalls:number;failedCalls:number;talkSeconds:number;averagePddSeconds:string}|null>(null);const [error,setError]=useState('');useEffect(()=>{const to=new Date();const from=new Date(to.getTime()-86400000);dashboard(token,from.toISOString(),to.toISOString()).then(setData).catch(e=>setError(e instanceof Error?e.message:'Dashboard unavailable'))},[token]);const rate=data&&data.totalCalls?`${((data.answeredCalls/data.totalCalls)*100).toFixed(1)}%`:'0%';const metrics=[['Total calls',String(data?.totalCalls??'—'),'Last 24 hours'],['Answer rate',data?rate:'—','Last 24 hours'],['Failed calls',String(data?.failedCalls??'—'),'Last 24 hours'],['Average PDD',data?`${data.averagePddSeconds}s`:'—','Last 24 hours']];
   return <div className="shell">
     <aside><div className="brand"><span className="brandMark">L</span><div><strong>Llamar</strong><small>Control Center</small></div></div>
       <div className="tenant"><span>Workspace</span><b>Acme Operations</b><small>Tenant active</small></div>
-      <nav>{nav.map((item, i) => <button className={i === 0 ? 'active' : ''} key={item}><span>{String(i + 1).padStart(2, '0')}</span>{item}</button>)}</nav>
+      <nav>{nav.map((item, i) => <button onClick={()=>setActive(item)} className={active === item ? 'active' : ''} key={item}><span>{String(i + 1).padStart(2, '0')}</span>{item}</button>)}</nav>
       <div className="connect"><small>Need capacity or integration help?</small><b>Connect with our team</b></div>
     </aside>
-    <main><header><div><p>Operations / Overview</p><h1>Good evening, Ankit</h1><span>Live operational view across calling, agents and compliance.</span></div><div className="actions"><button>Export report</button><button className="primary">Create campaign</button></div></header>
+    <main>{active==='AI providers'&&<ProviderSettings token={token}/>}<div className={active==='AI providers'?'viewHidden':''}><header><div><p>Operations / Overview</p><h1>Good evening, Ankit</h1><span>Live operational view across calling, agents and compliance.</span></div><div className="actions"><button>Export report</button><button className="primary">Create campaign</button></div></header>
       {error&&<section className="notice errorNotice"><div><b>Dashboard data unavailable</b><span>{error}</span></div></section>}
       <section className="notice"><div><b>Compliance guard active</b><span>Consent, DLT and provider policy checks are enforced before call execution.</span></div><button>Review policies</button></section>
       <section className="metrics">{metrics.map(([name, value, note]) => <article key={name}><div><span>{name}</span><i>LIVE</i></div><strong>{value}</strong><small>{note}</small></article>)}</section>
@@ -24,7 +25,7 @@ export default function App({token}:{token:string}) {
         <div className="ring"><div><strong>128</strong><span>of 200 channels</span></div></div>
         <div className="bars"><label><span>Channels</span><b>64%</b></label><progress value="64" max="100"/><label><span>CPS</span><b>42%</b></label><progress value="42" max="100"/></div>
       </article></section>
-      <footer><span>TRAI/DoT-aligned controls require deployment-specific review.</span><span>No uptime, delivery or compliance guarantee is implied.</span></footer>
+      <footer><span>TRAI/DoT-aligned controls require deployment-specific review.</span><span>No uptime, delivery or compliance guarantee is implied.</span></footer></div>
     </main>
   </div>;
 }
