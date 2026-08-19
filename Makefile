@@ -9,7 +9,7 @@ down:
 migrate:
 	docker compose run --rm migrate
 test:
-	docker compose run --rm api python -m pytest -q
+	docker compose run --rm api npm test
 backup:
 	sh scripts/backup.sh
 restore:
