@@ -1,17 +1,21 @@
 import Fastify from 'fastify';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import formbody from '@fastify/formbody';
 import { validateFlow } from './flows.js';
 import { can, type Principal, verifyToken } from './security.js';
 import { AiVoiceProfile, ProviderConfig, telephonyProviders } from './providers.js';
+import { OutboundCallRequest } from './telephony/types.js';
+import { telephonyAdapter } from './telephony/registry.js';
+import { verifyTwilioSignature } from './telephony/twilio.js';
 
 declare module 'fastify' { interface FastifyRequest { principal: Principal | null } }
 const app=Fastify({logger:true,trustProxy:true,bodyLimit:1_048_576});
-await app.register(helmet); await app.register(rateLimit,{max:120,timeWindow:'1 minute'});
+await app.register(helmet); await app.register(rateLimit,{max:120,timeWindow:'1 minute'}); await app.register(formbody);
 app.decorateRequest('principal',null);
 
 app.addHook('preHandler',async(req,reply)=>{
-  if(req.url.startsWith('/health')) return;
+  if(req.url.startsWith('/health')||req.url.startsWith('/v1/webhooks/')) return;
   const [scheme,token]=(req.headers.authorization??'').split(' ');
   if(scheme!=='Bearer'||!token) return reply.code(401).send({error:'bearer token required'});
   try{req.principal=await verifyToken(token);}catch{return reply.code(401).send({error:'invalid or expired token'});}
@@ -37,6 +41,18 @@ app.post('/v1/ai/voice-profiles/validate',async(req,reply)=>{
   if(!req.principal||!can(req.principal,'ai_agents.configure')) return reply.code(403).send({error:'insufficient permission'});
   const result=AiVoiceProfile.safeParse(req.body); if(!result.success)return reply.code(422).send({error:'invalid voice profile',details:result.error.issues});
   return {valid:true,primaryLocale:result.data.primaryLocale,supportedLocales:result.data.supportedLocales,avatar:result.data.avatar.characterName};
+});
+app.post('/v1/calls/outbound',async(req,reply)=>{
+  if(!req.principal||!can(req.principal,'calls.originate'))return reply.code(403).send({error:'insufficient permission'});
+  const parsed=OutboundCallRequest.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid call request',details:parsed.error.issues});
+  try{return reply.code(202).send(await telephonyAdapter('twilio').createCall(parsed.data));}
+  catch(error){req.log.error(error);return reply.code(502).send({error:'telephony provider rejected the call'});}
+});
+app.post('/v1/webhooks/twilio/status',async(req,reply)=>{
+  const token=process.env.TWILIO_AUTH_TOKEN??'';const base=(process.env.TWILIO_PUBLIC_BASE_URL??'').replace(/\/$/,'');
+  const url=`${base}/v1/webhooks/twilio/status`;const params=(req.body??{}) as Record<string,unknown>;
+  if(!verifyTwilioSignature(token,req.headers['x-twilio-signature'] as string|undefined,url,params))return reply.code(401).send({error:'invalid Twilio signature'});
+  req.log.info({provider:'twilio',callSid:params.CallSid,status:params.CallStatus},'verified call status');return reply.code(204).send();
 });
 
 const port=Number(process.env.PORT??8080); const host=process.env.HOST??'0.0.0.0';
