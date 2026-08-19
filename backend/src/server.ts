@@ -26,6 +26,7 @@ import { SupervisionStart, startSupervision } from './supervision.js';
 import { CreditEntry, addCredit, balance } from './billing.js';
 import { ReportRange, dashboard, recordings, setLegalHold } from './reports.js';
 import { KnowledgeSourceCreate, createKnowledgeSource, searchKnowledge } from './knowledge.js';
+import { outboundTwiml, reconcileTwilioStatus } from './callLifecycle.js';
 
 declare module 'fastify' { interface FastifyRequest { principal: Principal | null } }
 const app=Fastify({logger:true,trustProxy:true,bodyLimit:1_048_576});
@@ -33,7 +34,7 @@ await app.register(helmet); await app.register(rateLimit,{max:120,timeWindow:'1 
 app.decorateRequest('principal',null);
 
 app.addHook('preHandler',async(req,reply)=>{
-  if(req.url.startsWith('/health')||req.url.startsWith('/v1/webhooks/')||req.url==='/v1/freeswitch/xml'||['/v1/auth/email/request','/v1/auth/email/verify','/v1/auth/refresh'].includes(req.url)) return;
+  if(req.url.startsWith('/health')||req.url.startsWith('/v1/webhooks/')||req.url.startsWith('/v1/twiml/')||req.url==='/v1/freeswitch/xml'||['/v1/auth/email/request','/v1/auth/email/verify','/v1/auth/refresh'].includes(req.url)) return;
   const [scheme,token]=(req.headers.authorization??'').split(' ');
   if(scheme!=='Bearer'||!token) return reply.code(401).send({error:'bearer token required'});
   try{req.principal=await verifyToken(token);}catch{return reply.code(401).send({error:'invalid or expired token'});}
@@ -83,8 +84,9 @@ app.post('/v1/webhooks/twilio/status',async(req,reply)=>{
   const token=process.env.TWILIO_AUTH_TOKEN??'';const base=(process.env.TWILIO_PUBLIC_BASE_URL??'').replace(/\/$/,'');
   const url=`${base}/v1/webhooks/twilio/status`;const params=(req.body??{}) as Record<string,unknown>;
   if(!verifyTwilioSignature(token,req.headers['x-twilio-signature'] as string|undefined,url,params))return reply.code(401).send({error:'invalid Twilio signature'});
-  req.log.info({provider:'twilio',callSid:params.CallSid,status:params.CallStatus},'verified call status');return reply.code(204).send();
+  try{req.log.info(await reconcileTwilioStatus(params),'verified call status');return reply.code(204).send()}catch(error){req.log.warn(error);return reply.code(422).send({error:'invalid call event'})}
 });
+app.post('/v1/twiml/outbound',async(req,reply)=>{const token=process.env.TWILIO_AUTH_TOKEN??'';const base=(process.env.TWILIO_PUBLIC_BASE_URL??'').replace(/\/$/,'');const url=`${base}${req.raw.url}`;const params=(req.body??{}) as Record<string,unknown>;if(!verifyTwilioSignature(token,req.headers['x-twilio-signature'] as string|undefined,url,params))return reply.code(401).send('invalid signature');const query=z.object({tenantId:z.string().uuid(),jobId:z.string().uuid()}).safeParse(req.query);if(!query.success)return reply.code(422).send('invalid call context');try{return reply.type('application/xml').send(outboundTwiml(query.data.tenantId,query.data.jobId))}catch{return reply.code(503).send('voice gateway unavailable')}});
 app.post('/v1/ai/agents/validate',async(req,reply)=>{if(!req.principal||!can(req.principal,'ai_agents.configure'))return reply.code(403).send({error:'insufficient permission'});const result=AiAgent.safeParse(req.body);if(!result.success)return reply.code(422).send({error:'invalid AI agent',details:result.error.issues});return {valid:true,trainingModes:[...new Set(result.data.trainingSources.map(s=>s.type))],languages:result.data.languages,maxConcurrentCalls:result.data.maxConcurrentCalls}});
 app.post('/v1/ai/routes/validate',async(req,reply)=>{if(!req.principal||!can(req.principal,'ai_agents.route'))return reply.code(403).send({error:'insufficient permission'});const result=AgentRoute.safeParse(req.body);if(!result.success)return reply.code(422).send({error:'invalid AI route',details:result.error.issues});return {valid:true,did:result.data.did,agentCount:result.data.agentIds.length,strategy:result.data.strategy}});
 app.post('/v1/ai/knowledge',async(req,reply)=>{if(!req.principal||!can(req.principal,'ai_agents.knowledge.create')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});const parsed=KnowledgeSourceCreate.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid knowledge source',details:parsed.error.issues});try{return reply.code(202).send(await withTenant(req.principal.tenantId,c=>createKnowledgeSource(c,req.principal!.tenantId!,parsed.data,req.principal!.sub)))}catch(error){req.log.error(error);return reply.code(409).send({error:'knowledge source could not be created'})}});
