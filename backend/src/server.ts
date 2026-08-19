@@ -18,6 +18,7 @@ import { CampaignCreate, createCampaign, listCampaigns } from './campaigns.js';
 import { ContactListCreate, createContactList, listContactLists } from './contactLists.js';
 import { DidDirectAssign, DidRequestCreate, DidReview, createDidRequest, directAssign, reviewDidRequest } from './dids.js';
 import { CampaignStart, startCampaign } from './campaignExecution.js';
+import { RefreshRequest, RequestCode, VerifyCode, requestLoginCode, revokeRefreshToken, rotateRefreshToken, verifyLoginCode } from './auth.js';
 
 declare module 'fastify' { interface FastifyRequest { principal: Principal | null } }
 const app=Fastify({logger:true,trustProxy:true,bodyLimit:1_048_576});
@@ -25,7 +26,7 @@ await app.register(helmet); await app.register(rateLimit,{max:120,timeWindow:'1 
 app.decorateRequest('principal',null);
 
 app.addHook('preHandler',async(req,reply)=>{
-  if(req.url.startsWith('/health')||req.url.startsWith('/v1/webhooks/')||req.url==='/v1/freeswitch/xml') return;
+  if(req.url.startsWith('/health')||req.url.startsWith('/v1/webhooks/')||req.url==='/v1/freeswitch/xml'||['/v1/auth/email/request','/v1/auth/email/verify','/v1/auth/refresh'].includes(req.url)) return;
   const [scheme,token]=(req.headers.authorization??'').split(' ');
   if(scheme!=='Bearer'||!token) return reply.code(401).send({error:'bearer token required'});
   try{req.principal=await verifyToken(token);}catch{return reply.code(401).send({error:'invalid or expired token'});}
@@ -33,6 +34,10 @@ app.addHook('preHandler',async(req,reply)=>{
 app.get('/health/live',async()=>({status:'ok'}));
 app.get('/health/ready',async(_req,reply)=>{try{return await databaseReady()?{status:'ready'}:reply.code(503).send({status:'not_ready'})}catch{return reply.code(503).send({status:'not_ready'})}});
 app.get('/v1/auth/me',async req=>req.principal);
+app.post('/v1/auth/email/request',async(req,reply)=>{const parsed=RequestCode.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid request'});try{await withTenant(parsed.data.tenantId,c=>requestLoginCode(c,parsed.data));return reply.code(202).send({accepted:true})}catch(error){req.log.warn(error);return reply.code(429).send({error:'request could not be accepted'})}});
+app.post('/v1/auth/email/verify',async(req,reply)=>{const parsed=VerifyCode.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid request'});try{return await withTenant(parsed.data.tenantId,c=>verifyLoginCode(c,parsed.data))}catch{return reply.code(401).send({error:'invalid or expired code'})}});
+app.post('/v1/auth/refresh',async(req,reply)=>{const parsed=RefreshRequest.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid request'});try{return await withTenant(parsed.data.tenantId,c=>rotateRefreshToken(c,parsed.data))}catch{return reply.code(401).send({error:'invalid refresh token'})}});
+app.post('/v1/auth/logout',async(req,reply)=>{const parsed=RefreshRequest.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid request'});await withTenant(parsed.data.tenantId,c=>revokeRefreshToken(c,parsed.data.refreshToken));return reply.code(204).send()});
 app.post('/v1/flows/validate',async(req,reply)=>{
   if(!req.principal||!can(req.principal,'flows.validate')) return reply.code(403).send({error:'insufficient permission'});
   try{const flow=validateFlow(req.body);return {valid:true,nodeCount:flow.nodes.length,edgeCount:flow.edges.length};}
