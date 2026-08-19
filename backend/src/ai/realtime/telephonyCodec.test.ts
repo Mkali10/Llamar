@@ -1,3 +1,4 @@
-import assert from 'node:assert/strict';import test from 'node:test';import {pcmu8kToPcm16k,pcm24kToPcmu8k,pcmToPcmu8k} from './telephonyCodec.js';
+import assert from 'node:assert/strict';import test from 'node:test';import {pcm16be8kToPcmu8k,pcmu8kToPcm16be8k,pcmu8kToPcm16k,pcm24kToPcmu8k,pcmToPcmu8k} from './telephonyCodec.js';
 test('converts a 20ms Twilio PCMU frame to Gemini PCM16 and back',()=>{const pcmu=Buffer.alloc(160,0xff).toString('base64');const pcm16=pcmu8kToPcm16k(pcmu);assert.equal(Buffer.from(pcm16,'base64').length,640);const pcm24=Buffer.alloc(960);const back=pcm24kToPcmu8k(pcm24.toString('base64'));assert.equal(Buffer.from(back,'base64').length,160)})
 test('resamples a 20ms NVIDIA 22.05kHz PCM frame to Twilio PCMU',()=>{const pcm=Buffer.alloc(882).toString('base64');assert.equal(Buffer.from(pcmToPcmu8k(pcm,22050),'base64').length,160)})
+test('converts Vonage 8k L16 big-endian frames to and from PCMU',()=>{const l16=Buffer.alloc(320);const pcmu=pcm16be8kToPcmu8k(l16);assert.equal(Buffer.from(pcmu,'base64').length,160);assert.equal(pcmu8kToPcm16be8k(pcmu).length,320)})
