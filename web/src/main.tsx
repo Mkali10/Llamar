@@ -6,5 +6,6 @@ import './provider.css';
 import './studio.css';
 import './routing.css';
 import './campaign.css';
+import './live.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><AuthGate /></React.StrictMode>);
