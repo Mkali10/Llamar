@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {TeamUserCreate,TeamUserUpdate} from './team.js';
+test('team member schema normalizes email and validates granular permissions',()=>{const user=TeamUserCreate.parse({email:'Admin@Example.COM',role:'supervisor',permissions:['calls.monitor']});assert.equal(user.email,'admin@example.com');assert.deepEqual(user.permissions,['calls.monitor']);assert.equal(TeamUserCreate.safeParse({email:'x@example.com',role:'agent',permissions:['invalid']}).success,false)});
+test('team update rejects empty patches',()=>{assert.equal(TeamUserUpdate.safeParse({}).success,false);assert.equal(TeamUserUpdate.safeParse({status:'disabled'}).success,true)});
