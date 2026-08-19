@@ -5,7 +5,7 @@
 - Docker Compose for API, PostgreSQL migrations and web dashboard.
 - Secret-safe installer that refuses example credentials.
 - Versioned SQL migrations with forced tenant RLS.
-- JWT verification and role/tenant enforcement.
+- Node.js/TypeScript JWT verification and role/tenant enforcement.
 - Compliance fail-closed evaluation and IVR graph validation APIs.
 - Reseller, tenant, DID approval, campaigns, lists, flows, trunks, calls and recordings schema.
 - FreeSWITCH ESL and XML-CURL bootstrap contract.
@@ -14,6 +14,9 @@
 - Checksum-protected database backup/restore and fresh-server runbook.
 
 ## Product implementation — active
+
+The primary application stack is Node.js/TypeScript + React with FreeSWITCH. The earlier
+Python control-plane prototype is deprecated and will be removed after TypeScript parity checks.
 
 The setup baseline is not a claim that the complete production dialer is finished. The
 following require implementation and controlled integration testing:
