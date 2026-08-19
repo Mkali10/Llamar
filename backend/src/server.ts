@@ -20,6 +20,8 @@ import { DidDirectAssign, DidRequestCreate, DidReview, createDidRequest, directA
 import { CampaignStart, startCampaign } from './campaignExecution.js';
 import { RefreshRequest, RequestCode, VerifyCode, requestLoginCode, revokeRefreshToken, rotateRefreshToken, verifyLoginCode } from './auth.js';
 import { FlowCreate, FlowPublish, addFlowVersion, createFlow, listFlows, publishFlow } from './flowRepository.js';
+import { PluginCreate, createPlugin, listPlugins } from './plugins.js';
+import { MeetingCreate, MeetingUpdate, cancelMeeting, createMeeting, rescheduleMeeting } from './meetings.js';
 
 declare module 'fastify' { interface FastifyRequest { principal: Principal | null } }
 const app=Fastify({logger:true,trustProxy:true,bodyLimit:1_048_576});
@@ -52,6 +54,11 @@ app.get('/v1/providers/telephony',async(req,reply)=>{
   if(!req.principal||!can(req.principal,'plugins.view')) return reply.code(403).send({error:'insufficient permission'});
   return {providers:telephonyProviders};
 });
+app.post('/v1/plugins',async(req,reply)=>{if(!req.principal||!can(req.principal,'plugins.install')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});const parsed=PluginCreate.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid plugin',details:parsed.error.issues});try{return reply.code(201).send(await withTenant(req.principal.tenantId,c=>createPlugin(c,req.principal!.tenantId!,parsed.data,req.principal!.sub)))}catch(error){req.log.error(error);return reply.code(409).send({error:'plugin could not be installed'})}});
+app.get('/v1/plugins',async(req,reply)=>{if(!req.principal||!can(req.principal,'plugins.view')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});return withTenant(req.principal.tenantId,listPlugins)});
+app.post('/v1/meetings',async(req,reply)=>{if(!req.principal||!can(req.principal,'meetings.create')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});const parsed=MeetingCreate.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid meeting',details:parsed.error.issues});try{return reply.code(202).send(await withTenant(req.principal.tenantId,c=>createMeeting(c,req.principal!.tenantId!,parsed.data,req.principal!.sub)))}catch(error){return reply.code(409).send({error:error instanceof Error?error.message:'meeting failed'})}});
+app.post('/v1/meetings/:id/reschedule',async(req,reply)=>{if(!req.principal||!can(req.principal,'meetings.reschedule')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});const params=z.object({id:z.string().uuid()}).safeParse(req.params);const body=MeetingUpdate.safeParse(req.body);if(!params.success||!body.success)return reply.code(422).send({error:'invalid meeting update'});try{return await withTenant(req.principal.tenantId,c=>rescheduleMeeting(c,params.data.id,body.data))}catch(error){return reply.code(409).send({error:error instanceof Error?error.message:'reschedule failed'})}});
+app.post('/v1/meetings/:id/cancel',async(req,reply)=>{if(!req.principal||!can(req.principal,'meetings.cancel')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});const params=z.object({id:z.string().uuid()}).safeParse(req.params);if(!params.success)return reply.code(422).send({error:'invalid meeting'});try{return await withTenant(req.principal.tenantId,c=>cancelMeeting(c,params.data.id))}catch(error){return reply.code(409).send({error:error instanceof Error?error.message:'cancel failed'})}});
 app.post('/v1/providers/telephony/validate',async(req,reply)=>{
   if(!req.principal||!can(req.principal,'plugins.configure')) return reply.code(403).send({error:'insufficient permission'});
   const result=ProviderConfig.safeParse(req.body); if(!result.success)return reply.code(422).send({error:'invalid provider configuration',details:result.error.issues});
