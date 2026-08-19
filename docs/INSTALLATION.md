@@ -12,6 +12,15 @@ docker compose ps
 curl -fsS http://127.0.0.1:8080/health/live
 ```
 
+Preferred one-command path after editing `.env`:
+
+```bash
+make install
+make smoke
+```
+
+Dashboard: `http://SERVER_IP:3000`; API documentation: `http://SERVER_IP:8080/docs`.
+
 Do not expose this development stack directly to the internet. Production requires
 TLS, external secret management, PostgreSQL migrations plus forced RLS, encrypted
 object storage, restricted SIP/RTP/ESL networks, audit logging, monitoring, restore
