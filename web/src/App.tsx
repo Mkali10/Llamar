@@ -1,15 +1,13 @@
+import {useEffect,useState} from 'react';import {dashboard} from './api';
 const nav = ['Overview', 'Campaigns', 'Live calls', 'Flow builder', 'DIDs & approvals', 'Recordings', 'Reports', 'Team & rights'];
-const metrics = [
-  ['Active calls', '128', '+12 in 5 min'], ['Answer rate', '62.4%', 'Today'],
-  ['Available agents', '46', '8 on wrap-up'], ['PDD p95', '1.2s', 'Within policy']
-];
 const calls = [
   ['A-92814', 'Outbound', '+91•••• 1842', 'Sales follow-up', 'Connected', '04:18'],
   ['A-92813', 'Inbound', '+91•••• 3091', 'Support IVR', 'In queue', '01:42'],
   ['A-92812', 'Outbound', '+91•••• 6704', 'Payment reminder', 'Ringing', '00:12']
 ];
 
-export default function App() {
+export default function App({token}:{token:string}) {
+  const [data,setData]=useState<{totalCalls:number;answeredCalls:number;failedCalls:number;talkSeconds:number;averagePddSeconds:string}|null>(null);const [error,setError]=useState('');useEffect(()=>{const to=new Date();const from=new Date(to.getTime()-86400000);dashboard(token,from.toISOString(),to.toISOString()).then(setData).catch(e=>setError(e instanceof Error?e.message:'Dashboard unavailable'))},[token]);const rate=data&&data.totalCalls?`${((data.answeredCalls/data.totalCalls)*100).toFixed(1)}%`:'0%';const metrics=[['Total calls',String(data?.totalCalls??'—'),'Last 24 hours'],['Answer rate',data?rate:'—','Last 24 hours'],['Failed calls',String(data?.failedCalls??'—'),'Last 24 hours'],['Average PDD',data?`${data.averagePddSeconds}s`:'—','Last 24 hours']];
   return <div className="shell">
     <aside><div className="brand"><span className="brandMark">L</span><div><strong>Llamar</strong><small>Control Center</small></div></div>
       <div className="tenant"><span>Workspace</span><b>Acme Operations</b><small>Tenant active</small></div>
@@ -17,6 +15,7 @@ export default function App() {
       <div className="connect"><small>Need capacity or integration help?</small><b>Connect with our team</b></div>
     </aside>
     <main><header><div><p>Operations / Overview</p><h1>Good evening, Ankit</h1><span>Live operational view across calling, agents and compliance.</span></div><div className="actions"><button>Export report</button><button className="primary">Create campaign</button></div></header>
+      {error&&<section className="notice errorNotice"><div><b>Dashboard data unavailable</b><span>{error}</span></div></section>}
       <section className="notice"><div><b>Compliance guard active</b><span>Consent, DLT and provider policy checks are enforced before call execution.</span></div><button>Review policies</button></section>
       <section className="metrics">{metrics.map(([name, value, note]) => <article key={name}><div><span>{name}</span><i>LIVE</i></div><strong>{value}</strong><small>{note}</small></article>)}</section>
       <section className="grid"><article className="panel calls"><div className="panelHead"><div><h2>Live call activity</h2><p>Masked customer data · realtime state</p></div><button>Open monitor</button></div>
