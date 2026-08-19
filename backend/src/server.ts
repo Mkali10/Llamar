@@ -9,6 +9,8 @@ import { OutboundCallRequest } from './telephony/types.js';
 import { telephonyAdapter } from './telephony/registry.js';
 import { verifyTwilioSignature } from './telephony/twilio.js';
 import { AiAgent, AgentRoute } from './ai/agents.js';
+import { renderFreeSwitchXml } from './freeswitch/xml.js';
+import { EslClient } from './freeswitch/esl.js';
 
 declare module 'fastify' { interface FastifyRequest { principal: Principal | null } }
 const app=Fastify({logger:true,trustProxy:true,bodyLimit:1_048_576});
@@ -16,7 +18,7 @@ await app.register(helmet); await app.register(rateLimit,{max:120,timeWindow:'1 
 app.decorateRequest('principal',null);
 
 app.addHook('preHandler',async(req,reply)=>{
-  if(req.url.startsWith('/health')||req.url.startsWith('/v1/webhooks/')) return;
+  if(req.url.startsWith('/health')||req.url.startsWith('/v1/webhooks/')||req.url==='/v1/freeswitch/xml') return;
   const [scheme,token]=(req.headers.authorization??'').split(' ');
   if(scheme!=='Bearer'||!token) return reply.code(401).send({error:'bearer token required'});
   try{req.principal=await verifyToken(token);}catch{return reply.code(401).send({error:'invalid or expired token'});}
@@ -57,6 +59,8 @@ app.post('/v1/webhooks/twilio/status',async(req,reply)=>{
 });
 app.post('/v1/ai/agents/validate',async(req,reply)=>{if(!req.principal||!can(req.principal,'ai_agents.configure'))return reply.code(403).send({error:'insufficient permission'});const result=AiAgent.safeParse(req.body);if(!result.success)return reply.code(422).send({error:'invalid AI agent',details:result.error.issues});return {valid:true,trainingModes:[...new Set(result.data.trainingSources.map(s=>s.type))],languages:result.data.languages,maxConcurrentCalls:result.data.maxConcurrentCalls}});
 app.post('/v1/ai/routes/validate',async(req,reply)=>{if(!req.principal||!can(req.principal,'ai_agents.route'))return reply.code(403).send({error:'insufficient permission'});const result=AgentRoute.safeParse(req.body);if(!result.success)return reply.code(422).send({error:'invalid AI route',details:result.error.issues});return {valid:true,did:result.data.did,agentCount:result.data.agentIds.length,strategy:result.data.strategy}});
+app.post('/v1/freeswitch/xml',async(req,reply)=>{const expected=process.env.FREESWITCH_XML_CURL_TOKEN??'';const supplied=req.headers['x-llamar-freeswitch-token'];if(!expected||supplied!==expected)return reply.code(401).send('unauthorized');return reply.type('application/xml').send(renderFreeSwitchXml(req.body))});
+app.get('/v1/freeswitch/channels',async(req,reply)=>{if(!req.principal||!can(req.principal,'calls.monitor'))return reply.code(403).send({error:'insufficient permission'});try{const client=new EslClient(process.env.FREESWITCH_ESL_HOST??'127.0.0.1',Number(process.env.FREESWITCH_ESL_PORT??8021),process.env.FREESWITCH_ESL_PASSWORD??'');const channels=await client.channels();return {count:channels.length,channels}}catch(error){req.log.error(error);return reply.code(503).send({error:'FreeSWITCH ESL unavailable'})}});
 
 const port=Number(process.env.PORT??8080); const host=process.env.HOST??'0.0.0.0';
 app.listen({port,host}).catch(error=>{app.log.error(error);process.exit(1);});
