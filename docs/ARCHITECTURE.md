@@ -12,7 +12,7 @@
 
 ## Components
 
-- FastAPI control plane: identity, tenant configuration and orchestration.
+- Node.js/TypeScript control plane: identity, tenant configuration and orchestration.
 - PostgreSQL: tenants, approvals, campaigns, flows, ledger and audit history.
 - FreeSWITCH nodes: SIP/RTP and call execution.
 - ESL controller: leased single-consumer command ownership plus reconciliation.
