@@ -11,7 +11,7 @@
     "knowledge-worker": "node dist/knowledgeWorker.js",
     "notification-worker": "node dist/notificationWorker.js",
     "voice-gateway": "node dist/voiceGateway.js",
-    "test": "node --import tsx --test src/**/*.test.ts"
+    "test": "node --import tsx --test src/*.test.ts src/**/*.test.ts src/ai/realtime/*.test.ts"
   },
   "dependencies": {
     "@fastify/formbody": "^8.0.2",
