@@ -3,7 +3,7 @@ import net from 'node:net';
 export class EslClient {
   constructor(private readonly host:string,private readonly port:number,private readonly password:string) {}
   async command(command:string,timeoutMs=3000):Promise<string> {
-    if(!/^[a-zA-Z0-9_+\- .,:@/{}=]+$/.test(command)) throw new Error('unsafe ESL command');
+    if(!/^[a-zA-Z0-9_+\- .,:@/{}=&()]+$/.test(command)) throw new Error('unsafe ESL command');
     return new Promise((resolve,reject)=>{
       const socket=net.createConnection({host:this.host,port:this.port});let buffer='';let authenticated=false;let commandSent=false;let settled=false;
       const finish=(error?:Error,value?:string)=>{if(settled)return;settled=true;clearTimeout(timer);socket.destroy();error?reject(error):resolve(value??'')};
