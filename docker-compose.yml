@@ -37,6 +37,17 @@ services:
       migrate:
         condition: service_completed_successfully
     restart: unless-stopped
+  voice-gateway:
+    build: ./backend
+    command: ["node", "dist/voiceGateway.js"]
+    env_file: .env
+    ports: ["8090:8090"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
   postgres:
     image: postgres:16-alpine
     environment:
