@@ -1,0 +1,5 @@
+const base='/api';
+async function request<T>(path:string,init:RequestInit={}){const response=await fetch(`${base}${path}`,init);const data=response.status===204?null:await response.json();if(!response.ok)throw new Error(data?.error??`Request failed (${response.status})`);return data as T}
+export async function requestCode(tenantId:string,email:string){return request('/v1/auth/email/request',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({tenantId,email})})}
+export async function verifyCode(tenantId:string,email:string,code:string){return request<{accessToken:string;refreshToken:string;expiresIn:number}>('/v1/auth/email/verify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({tenantId,email,code})})}
+export async function dashboard(token:string,from:string,to:string){const q=new URLSearchParams({from,to});return request<{totalCalls:number;answeredCalls:number;failedCalls:number;talkSeconds:number;averagePddSeconds:string}>(`/v1/reports/dashboard?${q}`,{headers:{authorization:`Bearer ${token}`}})}
