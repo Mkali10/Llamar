@@ -8,6 +8,7 @@ import { AiVoiceProfile, ProviderConfig, telephonyProviders } from './providers.
 import { OutboundCallRequest } from './telephony/types.js';
 import { telephonyAdapter } from './telephony/registry.js';
 import { verifyTwilioSignature } from './telephony/twilio.js';
+import { AiAgent, AgentRoute } from './ai/agents.js';
 
 declare module 'fastify' { interface FastifyRequest { principal: Principal | null } }
 const app=Fastify({logger:true,trustProxy:true,bodyLimit:1_048_576});
@@ -54,6 +55,8 @@ app.post('/v1/webhooks/twilio/status',async(req,reply)=>{
   if(!verifyTwilioSignature(token,req.headers['x-twilio-signature'] as string|undefined,url,params))return reply.code(401).send({error:'invalid Twilio signature'});
   req.log.info({provider:'twilio',callSid:params.CallSid,status:params.CallStatus},'verified call status');return reply.code(204).send();
 });
+app.post('/v1/ai/agents/validate',async(req,reply)=>{if(!req.principal||!can(req.principal,'ai_agents.configure'))return reply.code(403).send({error:'insufficient permission'});const result=AiAgent.safeParse(req.body);if(!result.success)return reply.code(422).send({error:'invalid AI agent',details:result.error.issues});return {valid:true,trainingModes:[...new Set(result.data.trainingSources.map(s=>s.type))],languages:result.data.languages,maxConcurrentCalls:result.data.maxConcurrentCalls}});
+app.post('/v1/ai/routes/validate',async(req,reply)=>{if(!req.principal||!can(req.principal,'ai_agents.route'))return reply.code(403).send({error:'insufficient permission'});const result=AgentRoute.safeParse(req.body);if(!result.success)return reply.code(422).send({error:'invalid AI route',details:result.error.issues});return {valid:true,did:result.data.did,agentCount:result.data.agentIds.length,strategy:result.data.strategy}});
 
 const port=Number(process.env.PORT??8080); const host=process.env.HOST??'0.0.0.0';
 app.listen({port,host}).catch(error=>{app.log.error(error);process.exit(1);});
