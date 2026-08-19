@@ -20,3 +20,10 @@ export type AiRoute={id:string;did:string;strategy:string;agentIds:string[];fall
 export async function aiRoutes(token:string){return request<{items:AiRoute[]}>('/v1/ai/routes',{headers:auth(token)})}
 export async function saveAiRoute(token:string,input:Record<string,unknown>){return request<AiRoute>('/v1/ai/routes',{method:'POST',headers:auth(token),body:JSON.stringify(input)})}
 export async function bindCampaignAiAgent(token:string,campaignId:string,aiAgentId:string|null){return request(`/v1/campaigns/${campaignId}/ai-agent`,{method:'POST',headers:auth(token),body:JSON.stringify({aiAgentId})})}
+export type ContactList={id:string;name:string;rowCount:number;status:string;createdAt:string};
+export type Campaign={id:string;name:string;mode:string;status:string;contactListId:string|null;contactListName:string|null;aiAgentId:string|null;aiAgentName:string|null;cpsLimit:string;channelLimit:number;timezone:string;totalJobs:number;activeJobs:number;completedJobs:number;blockedJobs:number;createdAt:string};
+export async function contactLists(token:string){return request<{items:ContactList[]}>('/v1/contact-lists',{headers:auth(token)})}
+export async function importContactList(token:string,input:Record<string,unknown>){return request<ContactList>('/v1/contact-lists/import',{method:'POST',headers:auth(token),body:JSON.stringify(input)})}
+export async function campaigns(token:string){return request<{items:Campaign[];total:number}>('/v1/campaigns?limit=100&offset=0',{headers:auth(token)})}
+export async function addCampaign(token:string,input:Record<string,unknown>){return request<Campaign>('/v1/campaigns',{method:'POST',headers:auth(token),body:JSON.stringify(input)})}
+export async function startCampaign(token:string,id:string,maxAttempts=3){return request<{campaignId:string;createdJobs:number;ready:number;policyReview:number;status:string}>(`/v1/campaigns/${id}/start`,{method:'POST',headers:auth(token),body:JSON.stringify({maxAttempts})})}
