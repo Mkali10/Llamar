@@ -6,6 +6,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      bootstrap:
+        condition: service_completed_successfully
     restart: unless-stopped
   campaign-worker:
     build: ./backend
@@ -70,6 +72,16 @@ services:
       - ./database/migrations:/migrations:ro
       - ./scripts/migrate.sh:/migrate.sh:ro
     entrypoint: ["/bin/sh", "/migrate.sh"]
+    restart: "no"
+  bootstrap:
+    image: postgres:16-alpine
+    env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - ./scripts/bootstrap.sh:/bootstrap.sh:ro
+    entrypoint: ["/bin/sh", "/bootstrap.sh"]
     restart: "no"
   web:
     build: ./web
