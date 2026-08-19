@@ -30,5 +30,12 @@ services:
       - ./scripts/migrate.sh:/migrate.sh:ro
     entrypoint: ["/bin/sh", "/migrate.sh"]
     restart: "no"
+  web:
+    build: ./web
+    ports: ["3000:80"]
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
 volumes:
   postgres_data:
