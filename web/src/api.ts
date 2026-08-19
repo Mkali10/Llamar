@@ -35,3 +35,7 @@ export type TelephonyConnection={id:string;providerKey:string;displayName:string
 export async function telephonyConnections(token:string){return request<{available:string[];items:TelephonyConnection[]}>('/v1/providers/telephony/connections',{headers:auth(token)})}
 export async function addTelephonyConnection(token:string,input:Record<string,unknown>){return request<TelephonyConnection>('/v1/providers/telephony/connections',{method:'POST',headers:auth(token),body:JSON.stringify(input)})}
 export async function testTelephonyConnection(token:string,id:string){return request<TelephonyConnection&{test:{ready:boolean;detail:string}}>(`/v1/providers/telephony/connections/${id}/test`,{method:'POST',headers:auth(token)})}
+export type TeamUser={id:string;email:string;role:'owner'|'admin'|'supervisor'|'agent'|'auditor';status:'invited'|'active'|'disabled';permissions:string[];createdAt:string;updatedAt?:string};
+export async function teamUsers(token:string){return request<{items:TeamUser[]}>('/v1/team',{headers:auth(token)})}
+export async function addTeamUser(token:string,input:Pick<TeamUser,'email'|'role'|'status'|'permissions'>){return request<TeamUser>('/v1/team',{method:'POST',headers:auth(token),body:JSON.stringify(input)})}
+export async function updateTeamUser(token:string,id:string,input:Partial<Pick<TeamUser,'role'|'status'|'permissions'>>){return request<TeamUser>(`/v1/team/${id}`,{method:'PATCH',headers:auth(token),body:JSON.stringify(input)})}
