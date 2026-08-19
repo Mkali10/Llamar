@@ -72,3 +72,43 @@ def test_non_platform_identity_without_tenant_is_rejected():
         json={"destination": "919999999999", "purpose": "transactional"},
     )
     assert response.status_code == 403
+
+
+def test_valid_flow_graph():
+    response = client.post(
+        "/v1/flows/validate",
+        headers=auth(),
+        json={
+            "name": "Main inbound IVR",
+            "entry_node_id": "answer",
+            "nodes": [
+                {"id": "answer", "type": "answer"},
+                {"id": "menu", "type": "menu"},
+                {"id": "end", "type": "hangup"},
+            ],
+            "edges": [
+                {"source": "answer", "target": "menu"},
+                {"source": "menu", "target": "end"},
+            ],
+        },
+    )
+    assert response.status_code == 200
+    assert response.json() == {"valid": True, "node_count": 3, "edge_count": 2}
+
+
+def test_flow_rejects_unreachable_node():
+    response = client.post(
+        "/v1/flows/validate",
+        headers=auth(),
+        json={
+            "name": "Broken inbound IVR",
+            "entry_node_id": "answer",
+            "nodes": [
+                {"id": "answer", "type": "answer"},
+                {"id": "orphan", "type": "play"},
+                {"id": "end", "type": "hangup"},
+            ],
+            "edges": [{"source": "answer", "target": "end"}],
+        },
+    )
+    assert response.status_code == 422
