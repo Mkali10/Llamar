@@ -1,0 +1,10 @@
+<configuration name="xml_curl.conf" description="Llamar dynamic configuration">
+  <bindings>
+    <binding name="llamar">
+      <param name="gateway-url" value="https://${CONTROL_PLANE_HOST}/v1/freeswitch/xml" bindings="directory|dialplan|configuration"/>
+      <param name="method" value="POST"/>
+      <param name="enable-post-var" value="true"/>
+      <param name="timeout" value="3"/>
+    </binding>
+  </bindings>
+</configuration>
