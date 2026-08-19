@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {InlineContactListCreate} from './contactLists.js';
+test('inline contact import enforces E.164 and accepts consent metadata',()=>{assert.equal(InlineContactListCreate.safeParse({name:'Consented leads',contacts:[{phoneE164:'+919876543210',consentReference:'web-form-42'}]}).success,true);assert.equal(InlineContactListCreate.safeParse({name:'Bad leads',contacts:[{phoneE164:'9876543210'}]}).success,false)});
