@@ -1,0 +1,4 @@
+BEGIN;
+CREATE TABLE supervision_sessions(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL REFERENCES tenants(id),call_session_id uuid NOT NULL REFERENCES call_sessions(id),supervisor_user_id uuid NOT NULL,mode text NOT NULL CHECK(mode IN('listen','whisper','barge','coach','takeover')),supervisor_endpoint text NOT NULL,state text NOT NULL DEFAULT 'requested' CHECK(state IN('requested','active','completed','failed','cancelled')),started_at timestamptz,ended_at timestamptz,failure_reason text,created_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE supervision_sessions ENABLE ROW LEVEL SECURITY;ALTER TABLE supervision_sessions FORCE ROW LEVEL SECURITY;CREATE POLICY supervision_sessions_isolation ON supervision_sessions USING(tenant_id=current_setting('app.tenant_id',true)::uuid) WITH CHECK(tenant_id=current_setting('app.tenant_id',true)::uuid);
+COMMIT;
