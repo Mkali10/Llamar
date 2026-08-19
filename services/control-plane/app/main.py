@@ -3,8 +3,10 @@ from fastapi import Depends, FastAPI
 from pydantic import BaseModel, Field
 
 from .security import Principal, current_principal, require_tenant
+from .flows import router as flows_router
 
 app = FastAPI(title="Llamar Control Plane", version="0.1.0")
+app.include_router(flows_router)
 
 
 class Decision(StrEnum):
