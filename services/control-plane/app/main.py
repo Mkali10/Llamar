@@ -1,8 +1,8 @@
 from enum import StrEnum
-from uuid import UUID
-
-from fastapi import FastAPI, Header
+from fastapi import Depends, FastAPI
 from pydantic import BaseModel, Field
+
+from .security import Principal, current_principal, require_tenant
 
 app = FastAPI(title="Llamar Control Plane", version="0.1.0")
 
@@ -34,9 +34,14 @@ def ready() -> dict[str, str]:
     return {"status": "ready"}
 
 
+@app.get("/v1/auth/me", response_model=Principal)
+def me(principal: Principal = Depends(current_principal)) -> Principal:
+    return principal
+
+
 @app.post("/v1/compliance/evaluate", response_model=ComplianceDecision)
 def evaluate_call(
-    intent: CallIntent, tenant_id: UUID = Header(alias="X-Tenant-ID")
+    intent: CallIntent, principal: Principal = Depends(require_tenant)
 ) -> ComplianceDecision:
     reasons: list[str] = []
     if not intent.consent_reference:
