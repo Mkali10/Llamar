@@ -27,6 +27,16 @@ services:
       migrate:
         condition: service_completed_successfully
     restart: unless-stopped
+  notification-worker:
+    build: ./backend
+    command: ["node", "dist/notificationWorker.js"]
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
   postgres:
     image: postgres:16-alpine
     environment:
