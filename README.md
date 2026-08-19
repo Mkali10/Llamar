@@ -2,7 +2,7 @@
 
 Compliance-first, white-label, multi-tenant contact-center platform for India.
 
-This foundation provides a FastAPI control plane, PostgreSQL 16 development stack,
+This foundation provides a Node.js/TypeScript control plane, React web application and PostgreSQL 16 stack,
 tenant-scoped compliance evaluation, tests, and recovery documentation. Compliance
 decisions fail closed: incomplete requests are denied and complete requests remain
 in review until provider and policy checks are implemented.
