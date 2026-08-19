@@ -34,6 +34,7 @@ import {AgentCreate,AgentStatus,VoiceProfileCreate,createAgent,createVoiceProfil
 import {CampaignAgentBind,ResolveRoute,RouteCreate,bindCampaignAgent,createRoute,listRoutes,resolveRoute} from './agentRouting.js';
 import {callTranscript,liveCalls} from './liveCalls.js';
 import {TelephonyProviderCreate,createTelephonyProvider,listTelephonyProviders,testTelephonyProvider} from './telephonyProviders.js';
+import {TeamUserCreate,TeamUserUpdate,createTeamUser,listTeam,updateTeamUser} from './team.js';
 
 declare module 'fastify' { interface FastifyRequest { principal: Principal | null } }
 const app=Fastify({logger:true,trustProxy:true,bodyLimit:1_048_576});
@@ -49,6 +50,9 @@ app.addHook('preHandler',async(req,reply)=>{
 app.get('/health/live',async()=>({status:'ok'}));
 app.get('/health/ready',async(_req,reply)=>{try{return await databaseReady()?{status:'ready'}:reply.code(503).send({status:'not_ready'})}catch{return reply.code(503).send({status:'not_ready'})}});
 app.get('/v1/auth/me',async req=>req.principal);
+app.get('/v1/team',async(req,reply)=>{if(!req.principal||!can(req.principal,'users.view')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});return withTenant(req.principal.tenantId,listTeam)});
+app.post('/v1/team',async(req,reply)=>{if(!req.principal||!can(req.principal,'users.create')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});const body=TeamUserCreate.safeParse(req.body);if(!body.success)return reply.code(422).send({error:'invalid team user',details:body.error.issues});try{return reply.code(201).send(await withTenant(req.principal.tenantId,c=>createTeamUser(c,req.principal!.tenantId!,body.data,req.principal!.sub)))}catch{return reply.code(409).send({error:'user already exists'})}});
+app.patch('/v1/team/:id',async(req,reply)=>{if(!req.principal||!can(req.principal,'users.edit')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});const p=z.object({id:z.string().uuid()}).safeParse(req.params);const body=TeamUserUpdate.safeParse(req.body);if(!p.success||!body.success)return reply.code(422).send({error:'invalid team update'});try{return await withTenant(req.principal.tenantId,c=>updateTeamUser(c,req.principal!.tenantId!,p.data.id,body.data,req.principal!.sub))}catch(error){return reply.code(409).send({error:error instanceof Error?error.message:'user update failed'})}});
 app.post('/v1/auth/email/request',async(req,reply)=>{const parsed=RequestCode.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid request'});try{const result=await withTenant(parsed.data.tenantId,c=>requestLoginCode(c,parsed.data));return reply.code(202).send({accepted:true,...result})}catch(error){req.log.warn(error);return reply.code(429).send({error:'request could not be accepted'})}});
 app.post('/v1/auth/email/verify',async(req,reply)=>{const parsed=VerifyCode.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid request'});try{return await withTenant(parsed.data.tenantId,c=>verifyLoginCode(c,parsed.data))}catch{return reply.code(401).send({error:'invalid or expired code'})}});
 app.post('/v1/auth/refresh',async(req,reply)=>{const parsed=RefreshRequest.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid request'});try{return await withTenant(parsed.data.tenantId,c=>rotateRefreshToken(c,parsed.data))}catch{return reply.code(401).send({error:'invalid refresh token'})}});
