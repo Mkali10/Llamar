@@ -9,8 +9,12 @@ in review until provider and policy checks are implemented.
 
 ```bash
 cp .env.example .env
-docker compose up --build -d
-curl http://localhost:8080/health/live
+# Replace all example secrets, then:
+make install
+make smoke
 ```
 
-See `docs/INSTALLATION.md` and `docs/BACKUP_RESTORE.md`.
+Web dashboard: `http://SERVER_IP:3000` · API docs: `http://SERVER_IP:8080/docs`.
+
+See `docs/INSTALLATION.md`, `docs/DEPLOYMENT.md`, `docs/ARCHITECTURE.md`, and
+`docs/BACKUP_RESTORE.md`.
