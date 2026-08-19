@@ -15,6 +15,9 @@ experiences with capability, entitlement and permission checks on every API and 
 - Live monitor, listen, whisper, barge, coach, takeover and recording controls.
 - SIP trunks, DIDs, caller-ID policy, CPS/channels, least-cost routing, failover and number pools.
 - Cloud calling across approved SIP/CPaaS providers through isolated provider adapters.
+- International PSTN calling through tenant-enabled providers such as Twilio, Telnyx, Vonage,
+  Plivo and Bandwidth, plus custom SIP carriers. Routing considers country permission, number type,
+  verified caller ID, local regulations, cost, quality, residency, emergency restrictions and failover.
 - Call recording, pause/resume, encryption, retention, masking, access audit and legal hold.
 
 ## AI calling and orchestration
@@ -29,6 +32,14 @@ experiences with capability, entitlement and permission checks on every API and 
 - Emotion/sentiment cues such as calm, confused, frustrated or urgent may adapt tone and routing.
   They are probabilistic signals, never medical/psychological diagnosis or sole basis for adverse action.
 - Voice profiles, language, pronunciation dictionary, speaking rate, tone and approved persona controls.
+- Multilingual and code-switching conversations. Hindi and English are first-class; providers may add
+  other BCP-47 languages/locales and Indian languages including Bengali, Marathi, Telugu, Tamil,
+  Gujarati, Urdu, Kannada, Odia, Malayalam, Punjabi and Assamese when their selected STT/TTS models support them.
+- Per-agent voice selection with provider, voice ID, locale, gender/style metadata, speed, pitch,
+  pronunciation and fallback voice. Voice cloning requires explicit documented authorization.
+- Avatar/character profiles with name, visual identity, personality, tone, greeting, language set and
+  channel-specific representation. Phone calls use the avatar's approved voice/persona; web/video
+  channels may use an approved 2D/3D or realtime video avatar provider plugin.
 - Provider plugins for STT, TTS, LLM and realtime speech; tenant-level provider/model selection,
   budget, latency, residency and fallback policies.
 
