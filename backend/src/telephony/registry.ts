@@ -1,0 +1,2 @@
+import {TwilioAdapter} from './twilio.js';import type {TelephonyAdapter} from './types.js';
+export function telephonyAdapter(provider:string):TelephonyAdapter{if(provider==='twilio')return new TwilioAdapter({accountSid:process.env.TWILIO_ACCOUNT_SID??'',authToken:process.env.TWILIO_AUTH_TOKEN??'',defaultFrom:process.env.TWILIO_DEFAULT_FROM??''});throw new Error(`telephony provider not configured: ${provider}`)}
