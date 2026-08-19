@@ -19,6 +19,7 @@ import { ContactListCreate, createContactList, listContactLists } from './contac
 import { DidDirectAssign, DidRequestCreate, DidReview, createDidRequest, directAssign, reviewDidRequest } from './dids.js';
 import { CampaignStart, startCampaign } from './campaignExecution.js';
 import { RefreshRequest, RequestCode, VerifyCode, requestLoginCode, revokeRefreshToken, rotateRefreshToken, verifyLoginCode } from './auth.js';
+import { FlowCreate, FlowPublish, addFlowVersion, createFlow, listFlows, publishFlow } from './flowRepository.js';
 
 declare module 'fastify' { interface FastifyRequest { principal: Principal | null } }
 const app=Fastify({logger:true,trustProxy:true,bodyLimit:1_048_576});
@@ -43,6 +44,10 @@ app.post('/v1/flows/validate',async(req,reply)=>{
   try{const flow=validateFlow(req.body);return {valid:true,nodeCount:flow.nodes.length,edgeCount:flow.edges.length};}
   catch(error){return reply.code(422).send({error:error instanceof Error?error.message:'invalid flow'});}
 });
+app.post('/v1/flows',async(req,reply)=>{if(!req.principal||!can(req.principal,'flows.create')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});const parsed=FlowCreate.safeParse(req.body);if(!parsed.success)return reply.code(422).send({error:'invalid flow'});try{return reply.code(201).send(await withTenant(req.principal.tenantId,c=>createFlow(c,req.principal!.tenantId!,parsed.data,req.principal!.sub)))}catch(error){return reply.code(422).send({error:error instanceof Error?error.message:'flow creation failed'})}});
+app.get('/v1/flows',async(req,reply)=>{if(!req.principal||!can(req.principal,'flows.view')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});return withTenant(req.principal.tenantId,listFlows)});
+app.post('/v1/flows/:id/versions',async(req,reply)=>{if(!req.principal||!can(req.principal,'flows.edit')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});const params=z.object({id:z.string().uuid()}).safeParse(req.params);const body=z.object({definition:z.unknown()}).safeParse(req.body);if(!params.success||!body.success)return reply.code(422).send({error:'invalid flow version'});try{return reply.code(201).send(await withTenant(req.principal.tenantId,c=>addFlowVersion(c,req.principal!.tenantId!,params.data.id,body.data.definition,req.principal!.sub)))}catch(error){return reply.code(422).send({error:error instanceof Error?error.message:'version failed'})}});
+app.post('/v1/flows/:id/publish',async(req,reply)=>{if(!req.principal||!can(req.principal,'flows.publish')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});const params=z.object({id:z.string().uuid()}).safeParse(req.params);const body=FlowPublish.safeParse(req.body);if(!params.success||!body.success)return reply.code(422).send({error:'invalid publish request'});try{return await withTenant(req.principal.tenantId,c=>publishFlow(c,req.principal!.tenantId!,params.data.id,body.data.version,req.principal!.sub))}catch(error){return reply.code(409).send({error:error instanceof Error?error.message:'publish failed'})}});
 app.get('/v1/providers/telephony',async(req,reply)=>{
   if(!req.principal||!can(req.principal,'plugins.view')) return reply.code(403).send({error:'insufficient permission'});
   return {providers:telephonyProviders};
