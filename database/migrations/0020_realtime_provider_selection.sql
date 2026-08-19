@@ -1,0 +1,1 @@
+BEGIN;ALTER TABLE ai_voice_profiles ADD COLUMN realtime_connection_id uuid REFERENCES provider_connections(id);CREATE INDEX ai_voice_profiles_realtime_connection_idx ON ai_voice_profiles(realtime_connection_id);COMMIT;
