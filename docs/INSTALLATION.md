@@ -6,8 +6,11 @@ Baseline: Ubuntu 24.04 LTS or Debian 12, Docker Engine and Compose v2.
 git clone https://github.com/Mkali10/Llamar.git
 cd Llamar
 cp .env.example .env
-# Replace all example secrets.
-docker compose up --build -d
+# Replace all example secrets. Generate the required values:
+openssl rand -hex 32
+uuidgen
+# Put the generated UUID in BOOTSTRAP_TENANT_ID and your email in BOOTSTRAP_ADMIN_EMAIL.
+make install
 docker compose ps
 curl -fsS http://127.0.0.1:8080/health/live
 ```
@@ -20,6 +23,10 @@ make smoke
 ```
 
 Dashboard: `http://SERVER_IP:3000`; API documentation: `http://SERVER_IP:8080/docs`.
+
+Sign in with `BOOTSTRAP_TENANT_ID` and `BOOTSTRAP_ADMIN_EMAIL`. Development mode
+shows the configured six-digit development code on the login screen. Production
+mode never returns a code and requires working SMTP settings.
 
 Do not expose this development stack directly to the internet. Production requires
 TLS, external secret management, PostgreSQL migrations plus forced RLS, encrypted
