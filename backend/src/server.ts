@@ -32,6 +32,7 @@ import { outboundTwiml, reconcileTwilioStatus } from './callLifecycle.js';
 import {BindRealtimeProvider,RealtimeProviderCreate,bindRealtimeProvider,createRealtimeProvider,listRealtimeProviders,listVoiceProfiles,probeRealtimeProvider,setRealtimeProviderStatus} from './realtimeProviders.js';
 import {AgentCreate,AgentStatus,VoiceProfileCreate,createAgent,createVoiceProfile,listAgents,setAgentStatus} from './agentStudio.js';
 import {CampaignAgentBind,ResolveRoute,RouteCreate,bindCampaignAgent,createRoute,listRoutes,resolveRoute} from './agentRouting.js';
+import {callTranscript,liveCalls} from './liveCalls.js';
 
 declare module 'fastify' { interface FastifyRequest { principal: Principal | null } }
 const app=Fastify({logger:true,trustProxy:true,bodyLimit:1_048_576});
@@ -92,6 +93,8 @@ app.post('/v1/calls/outbound',async(req,reply)=>{
   try{return reply.code(202).send(await telephonyAdapter('twilio').createCall(parsed.data));}
   catch(error){req.log.error(error);return reply.code(502).send({error:'telephony provider rejected the call'});}
 });
+app.get('/v1/calls/live',async(req,reply)=>{if(!req.principal||!can(req.principal,'calls.monitor')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});const q=z.object({limit:z.coerce.number().int().min(1).max(200).default(50)}).safeParse(req.query);if(!q.success)return reply.code(422).send({error:'invalid pagination'});return withTenant(req.principal.tenantId,c=>liveCalls(c,q.data.limit))});
+app.get('/v1/calls/:id/transcript',async(req,reply)=>{if(!req.principal||!can(req.principal,'calls.monitor')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});const p=z.object({id:z.string().uuid()}).safeParse(req.params);if(!p.success)return reply.code(422).send({error:'invalid call'});try{return await withTenant(req.principal.tenantId,c=>callTranscript(c,p.data.id))}catch{return reply.code(404).send({error:'call not found'})}});
 app.post('/v1/webhooks/twilio/status',async(req,reply)=>{
   const token=process.env.TWILIO_AUTH_TOKEN??'';const base=(process.env.TWILIO_PUBLIC_BASE_URL??'').replace(/\/$/,'');
   const url=`${base}/v1/webhooks/twilio/status`;const params=(req.body??{}) as Record<string,unknown>;
