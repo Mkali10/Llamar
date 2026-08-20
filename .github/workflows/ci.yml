@@ -16,6 +16,35 @@ jobs:
       - run: sh -n scripts/*.sh
       - run: docker compose config
 
+  postgres-18:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare isolated test environment
+        run: |
+          cp .env.example .env
+          sed -i 's/replace-with-a-uuid/00000000-0000-4000-8000-000000000001/' .env
+      - name: Start PostgreSQL 18.6
+        run: docker compose up -d --wait postgres
+      - name: Apply every migration
+        run: docker compose run --rm migrate
+      - name: Verify bootstrap is idempotent
+        run: |
+          docker compose run --rm bootstrap
+          docker compose run --rm bootstrap
+      - name: Verify database version and migration ledger
+        run: |
+          docker compose exec -T postgres psql -p 15432 -U llamar -d llamar -Atc "SHOW server_version" | grep '^18\\.6'
+          expected=$(find database/migrations -maxdepth 1 -name '*.sql' | wc -l)
+          applied=$(docker compose exec -T postgres psql -p 15432 -U llamar -d llamar -Atc 'SELECT count(*) FROM schema_migrations')
+          test "$applied" -eq "$expected"
+      - name: Show database logs on failure
+        if: failure()
+        run: docker compose logs postgres migrate bootstrap
+      - name: Stop test stack
+        if: always()
+        run: docker compose down -v
+
   control-plane:
     runs-on: ubuntu-latest
     defaults:
