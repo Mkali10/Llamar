@@ -163,5 +163,5 @@ app.post('/v1/recordings/:id/legal-hold',async(req,reply)=>{if(!req.principal||!
 
 app.addHook('onClose',async()=>closeDatabase());
 
-const port=Number(process.env.PORT??8080); const host=process.env.HOST??'0.0.0.0';
+const port=Number(process.env.PORT??18443); const host=process.env.HOST??'0.0.0.0';
 app.listen({port,host}).catch(error=>{app.log.error(error);process.exit(1);});
