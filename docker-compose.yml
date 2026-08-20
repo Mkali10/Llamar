@@ -42,6 +42,16 @@ services:
       migrate:
         condition: service_completed_successfully
     restart: unless-stopped
+  integration-worker:
+    build: ./backend
+    command: ["node", "dist/integrationWorker.js"]
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
   report-worker:
     build: ./backend
     command: ["node", "dist/reportWorker.js"]
