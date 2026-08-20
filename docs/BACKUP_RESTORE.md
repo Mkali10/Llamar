@@ -23,7 +23,7 @@ sha256sum -c backups/llamar.dump.sha256
 docker compose exec -T postgres pg_restore --clean --if-exists --no-owner --no-acl \
   -U "$POSTGRES_USER" -d "$POSTGRES_DB" < backups/llamar.dump
 docker compose up --build -d
-curl -fsS http://127.0.0.1:8080/health/ready
+curl -fsS http://127.0.0.1:18443/health/ready
 ```
 
 A backup is valid only after a separate restore drill succeeds and evidence is retained.
