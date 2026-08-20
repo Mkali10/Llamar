@@ -14,7 +14,7 @@ make install
 make smoke
 ```
 
-Web dashboard: `http://SERVER_IP:3000` · API docs: `http://SERVER_IP:8080/docs`.
+Web dashboard: `http://SERVER_IP:18080` · API docs: `http://127.0.0.1:18443/docs` (loopback by default). See `docs/FIREWALL_PORTS.md` before exposing services.
 
 See `docs/INSTALLATION.md`, `docs/DEPLOYMENT.md`, `docs/ARCHITECTURE.md`, and
 `docs/BACKUP_RESTORE.md`.
