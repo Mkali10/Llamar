@@ -12,5 +12,6 @@ import './team.css';
 import './dids.css';
 import './flow.css';
 import './records.css';
+import './meetings.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><AuthGate /></React.StrictMode>);
