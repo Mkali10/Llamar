@@ -1,0 +1,15 @@
+export type ProviderCategory='telephony'|'realtime_ai';
+export type ProviderDefinition={key:string;category:ProviderCategory;label:string;requiredEnvironment:string[];capabilities:string[]};
+export const providerCatalog:ProviderDefinition[]=[
+{key:'twilio',category:'telephony',label:'Twilio',requiredEnvironment:['TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_DEFAULT_FROM'],capabilities:['voice.outbound','international','status.webhook','media.streaming']},
+{key:'telnyx',category:'telephony',label:'Telnyx',requiredEnvironment:['TELNYX_API_KEY','TELNYX_CONNECTION_ID','TELNYX_DEFAULT_FROM'],capabilities:['voice.outbound','international','status.webhook','media.streaming']},
+{key:'plivo',category:'telephony',label:'Plivo',requiredEnvironment:['PLIVO_AUTH_ID','PLIVO_AUTH_TOKEN','PLIVO_DEFAULT_FROM'],capabilities:['voice.outbound','international','status.webhook','voice.xml']},
+{key:'vonage',category:'telephony',label:'Vonage',requiredEnvironment:['VONAGE_APPLICATION_ID','VONAGE_PRIVATE_KEY_PATH','VONAGE_DEFAULT_FROM'],capabilities:['voice.outbound','international','status.webhook','media.streaming']},
+{key:'openai',category:'realtime_ai',label:'OpenAI Realtime',requiredEnvironment:['OPENAI_API_KEY'],capabilities:['audio.in','audio.out','barge_in','transcription','multilingual']},
+{key:'gemini',category:'realtime_ai',label:'Gemini Live',requiredEnvironment:['GEMINI_API_KEY'],capabilities:['audio.in','audio.out','barge_in','transcription','multilingual']},
+{key:'xai',category:'realtime_ai',label:'Grok Voice',requiredEnvironment:['XAI_API_KEY'],capabilities:['audio.in','audio.out','barge_in','transcription','multilingual']},
+{key:'nvidia',category:'realtime_ai',label:'NVIDIA NIM',requiredEnvironment:['NVIDIA_ASR_NIM_URL','NVIDIA_TTS_NIM_URL','NVIDIA_LLM_NIM_URL'],capabilities:['audio.in','audio.out','barge_in','transcription','multilingual']},
+];
+export function providersFor(category:ProviderCategory){return providerCatalog.filter(provider=>provider.category===category)}
+export function providerDefinition(category:ProviderCategory,key:string){return providersFor(category).find(provider=>provider.key===key)}
+export function providerSetup(category:ProviderCategory,key:string,environment:NodeJS.ProcessEnv=process.env){const definition=providerDefinition(category,key);if(!definition)return {supported:false,ready:false,missing:[] as string[]};const missing=definition.requiredEnvironment.filter(name=>!environment[name]);return {supported:true,ready:missing.length===0,missing}}
