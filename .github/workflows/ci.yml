@@ -39,6 +39,8 @@ jobs:
           expected=$(find database/migrations -maxdepth 1 -name '*.sql' | wc -l)
           applied=$(docker compose exec -T postgres psql -p 15432 -U llamar -d llamar -Atc 'SELECT count(*) FROM schema_migrations')
           test "$applied" -eq "$expected"
+      - name: Verify backup can be restored
+        run: docker compose run --rm --entrypoint /bin/sh migrate /verify-restore.sh
       - name: Show database logs on failure
         if: failure()
         run: docker compose logs postgres migrate bootstrap
