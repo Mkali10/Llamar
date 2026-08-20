@@ -40,6 +40,7 @@ import {AgentPresenceUpdate,AgentSessionStart,endAgentSession,listAgentPresence,
 import {DispositionCreate,createDisposition,listDispositions} from './dispositions.js';
 import {RecordingUploadHeaders,maxRecordingBytes,recordingMime,recordingObject,recordingPath,storeRecording} from './recordingStorage.js';
 import {MediaNodeCreate,MediaNodeDrain,MediaNodeHeartbeat,MediaNodeReserve,createMediaNode,heartbeatMediaNode,listMediaNodes,releaseMediaReservation,reserveMediaNode,setMediaNodeDrain} from './mediaNodes.js';
+import {providerCatalog,providerSetup} from './providerCatalog.js';
 
 declare module 'fastify' { interface FastifyRequest { principal: Principal | null } }
 const app=Fastify({logger:true,trustProxy:true,bodyLimit:1_048_576});
@@ -55,6 +56,7 @@ app.addHook('preHandler',async(req,reply)=>{
 });
 app.get('/health/live',async()=>({status:'ok'}));
 app.get('/health/ready',async(_req,reply)=>{try{return await databaseReady()?{status:'ready'}:reply.code(503).send({status:'not_ready'})}catch{return reply.code(503).send({status:'not_ready'})}});
+app.get('/v1/providers/catalog',async(req,reply)=>{if(!req.principal||!can(req.principal,'plugins.view'))return reply.code(403).send({error:'insufficient permission'});return {items:providerCatalog.map(provider=>{const setup=providerSetup(provider.category,provider.key);return {...provider,configured:setup.ready,missingEnvironment:setup.missing}})}});
 app.get('/v1/media-nodes',async(req,reply)=>{if(!req.principal||req.principal.role!=='platform_admin')return reply.code(403).send({error:'platform admin required'});const c=await pool.connect();try{return await listMediaNodes(c)}finally{c.release()}});
 app.post('/v1/media-nodes',async(req,reply)=>{if(!req.principal||req.principal.role!=='platform_admin')return reply.code(403).send({error:'platform admin required'});const body=MediaNodeCreate.safeParse(req.body);if(!body.success)return reply.code(422).send({error:'invalid media node',details:body.error.issues});const c=await pool.connect();try{return reply.code(201).send(await createMediaNode(c,body.data))}finally{c.release()}});
 app.patch('/v1/media-nodes/:id/drain',async(req,reply)=>{if(!req.principal||req.principal.role!=='platform_admin')return reply.code(403).send({error:'platform admin required'});const params=z.object({id:z.string().uuid()}).safeParse(req.params);const body=MediaNodeDrain.safeParse(req.body);if(!params.success||!body.success)return reply.code(422).send({error:'invalid drain request'});const c=await pool.connect();try{return await setMediaNodeDrain(c,params.data.id,body.data.draining)}catch{return reply.code(404).send({error:'media node not found'})}finally{c.release()}});
