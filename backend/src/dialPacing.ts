@@ -1,0 +1,3 @@
+import type pg from 'pg';
+export function normalizedCps(value:number){if(!Number.isFinite(value)||value<=0)throw new Error('CPS must be positive');return Math.max(1,Math.min(1000,Math.floor(value)))}
+export async function reserveDialSlot(c:pg.PoolClient,tenantId:string,campaignId:string,cps:number){const limit=normalizedCps(cps);const result=await c.query(`INSERT INTO campaign_dial_slots(tenant_id,campaign_id,bucket_start,launches) VALUES($1,$2,date_trunc('second',clock_timestamp()),1) ON CONFLICT(campaign_id,bucket_start) DO UPDATE SET launches=campaign_dial_slots.launches+1 WHERE campaign_dial_slots.launches<$3 RETURNING launches`,[tenantId,campaignId,limit]);return {admitted:Boolean(result.rowCount),limit,used:Number(result.rows[0]?.launches??limit)}}
