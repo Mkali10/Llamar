@@ -125,6 +125,7 @@ services:
     volumes:
       - ./database/migrations:/migrations:ro
       - ./scripts/migrate.sh:/migrate.sh:ro
+      - ./scripts/verify-restore.sh:/verify-restore.sh:ro
     entrypoint: ["/bin/sh", "/migrate.sh"]
     restart: "no"
   bootstrap:
