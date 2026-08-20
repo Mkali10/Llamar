@@ -9,7 +9,7 @@ grep -Eq 'change-me|replace-with' .env && { echo 'Refusing to start with example
 docker compose up -d postgres
 docker compose run --rm migrate
 docker compose run --rm bootstrap
-docker compose up --build -d api campaign-worker knowledge-worker voice-gateway web
+docker compose up --build -d api campaign-worker knowledge-worker report-worker recording-retention-worker voice-gateway coturn web
 if [ "${LLAMAR_ENV:-development}" = "production" ]; then
   test -n "${SMTP_HOST:-}" || { echo 'SMTP_HOST is required in production'; exit 1; }
   docker compose up -d notification-worker
