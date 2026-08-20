@@ -16,7 +16,7 @@ import { AiAgent, AgentRoute } from './ai/agents.js';
 import { renderFreeSwitchXml } from './freeswitch/xml.js';
 import { EslClient } from './freeswitch/esl.js';
 import { AgentWebRtcRequest, publicWebRtcConfig } from './webrtc.js';
-import { closeDatabase, databaseReady, withTenant } from './database.js';
+import { closeDatabase, databaseReady, pool, withTenant } from './database.js';
 import { CampaignCreate, createCampaign, listCampaigns } from './campaigns.js';
 import { ContactListCreate,InlineContactListCreate,createContactList,createInlineContactList,listContactLists } from './contactLists.js';
 import { DidDirectAssign, DidRequestCreate, DidReview, createDidRequest, directAssign, listDidAssignments, listDidRequests, reviewDidRequest } from './dids.js';
@@ -39,6 +39,7 @@ import {TeamUserCreate,TeamUserUpdate,createTeamUser,listTeam,updateTeamUser} fr
 import {AgentPresenceUpdate,AgentSessionStart,endAgentSession,listAgentPresence,startAgentSession,updateAgentPresence} from './agentPresence.js';
 import {DispositionCreate,createDisposition,listDispositions} from './dispositions.js';
 import {RecordingUploadHeaders,maxRecordingBytes,recordingMime,recordingObject,recordingPath,storeRecording} from './recordingStorage.js';
+import {MediaNodeCreate,MediaNodeDrain,MediaNodeHeartbeat,MediaNodeReserve,createMediaNode,heartbeatMediaNode,listMediaNodes,releaseMediaReservation,reserveMediaNode,setMediaNodeDrain} from './mediaNodes.js';
 
 declare module 'fastify' { interface FastifyRequest { principal: Principal | null } }
 const app=Fastify({logger:true,trustProxy:true,bodyLimit:1_048_576});
@@ -47,13 +48,19 @@ app.addContentTypeParser('application/octet-stream',{parseAs:'buffer'},(_req,bod
 app.decorateRequest('principal',null);
 
 app.addHook('preHandler',async(req,reply)=>{
-  if(req.url.startsWith('/health')||req.url.startsWith('/docs')||req.url==='/openapi.json'||req.url.startsWith('/v1/webhooks/')||req.url.startsWith('/v1/twiml/')||req.url==='/v1/freeswitch/xml'||req.url==='/v1/internal/ai-route/resolve'||req.url==='/v1/internal/recordings'||['/v1/auth/email/request','/v1/auth/email/verify','/v1/auth/refresh'].includes(req.url)) return;
+  if(req.url.startsWith('/health')||req.url.startsWith('/docs')||req.url==='/openapi.json'||req.url.startsWith('/v1/webhooks/')||req.url.startsWith('/v1/twiml/')||req.url==='/v1/freeswitch/xml'||req.url.startsWith('/v1/internal/media-nodes/')||req.url==='/v1/internal/ai-route/resolve'||req.url==='/v1/internal/recordings'||['/v1/auth/email/request','/v1/auth/email/verify','/v1/auth/refresh'].includes(req.url)) return;
   const [scheme,token]=(req.headers.authorization??'').split(' ');
   if(scheme!=='Bearer'||!token) return reply.code(401).send({error:'bearer token required'});
   try{req.principal=await verifyToken(token);}catch{return reply.code(401).send({error:'invalid or expired token'});}
 });
 app.get('/health/live',async()=>({status:'ok'}));
 app.get('/health/ready',async(_req,reply)=>{try{return await databaseReady()?{status:'ready'}:reply.code(503).send({status:'not_ready'})}catch{return reply.code(503).send({status:'not_ready'})}});
+app.get('/v1/media-nodes',async(req,reply)=>{if(!req.principal||req.principal.role!=='platform_admin')return reply.code(403).send({error:'platform admin required'});const c=await pool.connect();try{return await listMediaNodes(c)}finally{c.release()}});
+app.post('/v1/media-nodes',async(req,reply)=>{if(!req.principal||req.principal.role!=='platform_admin')return reply.code(403).send({error:'platform admin required'});const body=MediaNodeCreate.safeParse(req.body);if(!body.success)return reply.code(422).send({error:'invalid media node',details:body.error.issues});const c=await pool.connect();try{return reply.code(201).send(await createMediaNode(c,body.data))}finally{c.release()}});
+app.patch('/v1/media-nodes/:id/drain',async(req,reply)=>{if(!req.principal||req.principal.role!=='platform_admin')return reply.code(403).send({error:'platform admin required'});const params=z.object({id:z.string().uuid()}).safeParse(req.params);const body=MediaNodeDrain.safeParse(req.body);if(!params.success||!body.success)return reply.code(422).send({error:'invalid drain request'});const c=await pool.connect();try{return await setMediaNodeDrain(c,params.data.id,body.data.draining)}catch{return reply.code(404).send({error:'media node not found'})}finally{c.release()}});
+app.post('/v1/internal/media-nodes/heartbeat',async(req,reply)=>{const expected=process.env.LLAMAR_INTERNAL_TOKEN??'';if(!expected||req.headers['x-llamar-internal-token']!==expected)return reply.code(401).send({error:'invalid internal token'});const body=MediaNodeHeartbeat.safeParse(req.body);if(!body.success)return reply.code(422).send({error:'invalid heartbeat'});const c=await pool.connect();try{return await heartbeatMediaNode(c,body.data)}catch{return reply.code(404).send({error:'media node not registered'})}finally{c.release()}});
+app.post('/v1/internal/media-nodes/reserve',async(req,reply)=>{const expected=process.env.LLAMAR_INTERNAL_TOKEN??'';if(!expected||req.headers['x-llamar-internal-token']!==expected)return reply.code(401).send({error:'invalid internal token'});const body=MediaNodeReserve.safeParse(req.body);if(!body.success)return reply.code(422).send({error:'invalid reservation'});const c=await pool.connect();try{await c.query('BEGIN');const result=await reserveMediaNode(c,body.data);await c.query('COMMIT');return result}catch(error){await c.query('ROLLBACK');return reply.code(503).send({error:error instanceof Error?error.message:'capacity unavailable'})}finally{c.release()}});
+app.delete('/v1/internal/media-nodes/reservations/:id',async(req,reply)=>{const expected=process.env.LLAMAR_INTERNAL_TOKEN??'';if(!expected||req.headers['x-llamar-internal-token']!==expected)return reply.code(401).send({error:'invalid internal token'});const params=z.object({id:z.string().uuid()}).safeParse(req.params);if(!params.success)return reply.code(422).send({error:'invalid reservation'});const c=await pool.connect();try{return await releaseMediaReservation(c,params.data.id)}catch{return reply.code(404).send({error:'active reservation not found'})}finally{c.release()}});
 app.get('/v1/auth/me',async req=>req.principal);
 app.get('/v1/team',async(req,reply)=>{if(!req.principal||!can(req.principal,'users.view')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});return withTenant(req.principal.tenantId,listTeam)});
 app.post('/v1/team',async(req,reply)=>{if(!req.principal||!can(req.principal,'users.create')||!req.principal.tenantId)return reply.code(403).send({error:'insufficient permission'});const body=TeamUserCreate.safeParse(req.body);if(!body.success)return reply.code(422).send({error:'invalid team user',details:body.error.issues});try{return reply.code(201).send(await withTenant(req.principal.tenantId,c=>createTeamUser(c,req.principal!.tenantId!,body.data,req.principal!.sub)))}catch{return reply.code(409).send({error:'user already exists'})}});
