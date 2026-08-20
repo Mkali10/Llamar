@@ -9,7 +9,7 @@ a version/checksum manifest. Never put plaintext secrets or compliance documents
 ```bash
 mkdir -p backups
 docker compose exec -T postgres pg_dump --format=custom --no-owner --no-acl \
-  -U "$POSTGRES_USER" "$POSTGRES_DB" > backups/llamar.dump
+  -p 15432 -U llamar llamar > backups/llamar.dump
 sha256sum backups/llamar.dump > backups/llamar.dump.sha256
 ```
 
@@ -21,7 +21,7 @@ cp .env.example .env  # restore approved secrets
 docker compose up -d postgres
 sha256sum -c backups/llamar.dump.sha256
 docker compose exec -T postgres pg_restore --clean --if-exists --no-owner --no-acl \
-  -U "$POSTGRES_USER" -d "$POSTGRES_DB" < backups/llamar.dump
+  -p 15432 -U llamar -d llamar < backups/llamar.dump
 docker compose up --build -d
 curl -fsS http://127.0.0.1:18443/health/ready
 ```
