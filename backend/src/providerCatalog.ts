@@ -1,4 +1,4 @@
-export type ProviderCategory='telephony'|'realtime_ai';
+export type ProviderCategory='telephony'|'realtime_ai'|'calendar'|'meeting';
 export type ProviderDefinition={key:string;category:ProviderCategory;label:string;requiredEnvironment:string[];capabilities:string[]};
 export const providerCatalog:ProviderDefinition[]=[
 {key:'twilio',category:'telephony',label:'Twilio',requiredEnvironment:['TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_DEFAULT_FROM'],capabilities:['voice.outbound','international','status.webhook','media.streaming']},
@@ -9,6 +9,8 @@ export const providerCatalog:ProviderDefinition[]=[
 {key:'gemini',category:'realtime_ai',label:'Gemini Live',requiredEnvironment:['GEMINI_API_KEY'],capabilities:['audio.in','audio.out','barge_in','transcription','multilingual']},
 {key:'xai',category:'realtime_ai',label:'Grok Voice',requiredEnvironment:['XAI_API_KEY'],capabilities:['audio.in','audio.out','barge_in','transcription','multilingual']},
 {key:'nvidia',category:'realtime_ai',label:'NVIDIA NIM',requiredEnvironment:['NVIDIA_ASR_NIM_URL','NVIDIA_TTS_NIM_URL','NVIDIA_LLM_NIM_URL'],capabilities:['audio.in','audio.out','barge_in','transcription','multilingual']},
+{key:'google_calendar',category:'calendar',label:'Google Calendar + Meet',requiredEnvironment:['GOOGLE_CALENDAR_ACCESS_TOKEN'],capabilities:['meetings.create','meetings.update','meetings.cancel','meetings.join_url']},
+{key:'microsoft_graph',category:'meeting',label:'Microsoft Outlook + Teams',requiredEnvironment:['MICROSOFT_GRAPH_ACCESS_TOKEN'],capabilities:['meetings.create','meetings.update','meetings.cancel','meetings.join_url']},
 ];
 export function providersFor(category:ProviderCategory){return providerCatalog.filter(provider=>provider.category===category)}
 export function providerDefinition(category:ProviderCategory,key:string){return providersFor(category).find(provider=>provider.key===key)}
