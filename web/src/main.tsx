@@ -13,5 +13,6 @@ import './dids.css';
 import './flow.css';
 import './records.css';
 import './meetings.css';
+import './agent-desk.css';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><AuthGate /></React.StrictMode>);
+ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><React.Suspense fallback={<div className="appLoading">Loading workspace…</div>}><AuthGate /></React.Suspense></React.StrictMode>);
