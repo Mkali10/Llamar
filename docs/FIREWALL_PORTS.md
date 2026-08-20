@@ -15,6 +15,9 @@ Llamar application services use non-default ports and are configurable through `
 | SIP signalling with TLS | 15061/TCP | Provider/agent IP ranges only | `FREESWITCH_SIP_TLS_PORT` |
 | Browser softphone WSS | 17443/TCP | Agent networks or TLS proxy only | `FREESWITCH_WSS_PORT`, `WEBRTC_WSS_URL` |
 | RTP media | 20000-24999/UDP | Provider/media-relay IP ranges only | `FREESWITCH_RTP_START`, `FREESWITCH_RTP_END` |
+| coturn listener | 13478/UDP,TCP | Public for authenticated WebRTC clients | `TURN_PORT` |
+| coturn TLS listener | 15443/TCP | Optional after certificate configuration | `TURN_TLS_PORT` |
+| coturn relay media | 49160-49260/UDP | Public; authenticated allocations only | `TURN_RELAY_MIN`, `TURN_RELAY_MAX` |
 
 ## Production inbound allow-list
 
@@ -28,6 +31,8 @@ Open only the paths used by the selected deployment:
 | 15061/TCP | Configured carrier/SIP trunk and agent IP ranges | Only for SIP TLS | Encrypted SIP signalling. |
 | 17443/TCP | Approved agent networks | Only if not proxied through 443/10443 | WebRTC secure WebSocket signalling. |
 | 20000-24999/UDP | Configured carrier/media relay IP ranges | For live calls | RTP/SRTP audio. Narrow the range further to match capacity. |
+| 13478/UDP,TCP | Agent networks/Internet | Browser calling | Authenticated TURN/STUN listener using short-lived credentials. |
+| 49160-49260/UDP | Agent networks/Internet | TURN-relayed calls | coturn relay range; size it from measured concurrent relay usage. |
 | Operator-selected SSH port, for example 22222/TCP | Fixed administrator/VPN IPs | Operations only | Server administration. Llamar does not change SSH configuration. |
 
 Do **not** publicly allow 15432, 18021, 18090 or 18443. Port 18080 should also remain private in production; publish the dashboard through the TLS edge proxy.
