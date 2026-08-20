@@ -12,7 +12,7 @@ uuidgen
 # Put the generated UUID in BOOTSTRAP_TENANT_ID and your email in BOOTSTRAP_ADMIN_EMAIL.
 make install
 docker compose ps
-curl -fsS http://127.0.0.1:8080/health/live
+curl -fsS http://127.0.0.1:18443/health/live
 ```
 
 Preferred one-command path after editing `.env`:
@@ -22,7 +22,7 @@ make install
 make smoke
 ```
 
-Dashboard: `http://SERVER_IP:3000`; API documentation: `http://SERVER_IP:8080/docs`.
+Dashboard: `http://SERVER_IP:18080`; API documentation: `http://127.0.0.1:18443/docs` (loopback by default). Review `FIREWALL_PORTS.md` before production exposure.
 
 Sign in with `BOOTSTRAP_TENANT_ID` and `BOOTSTRAP_ADMIN_EMAIL`. Development mode
 shows the configured six-digit development code on the login screen. Production
