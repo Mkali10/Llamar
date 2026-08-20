@@ -2,7 +2,9 @@ services:
   api:
     build: ./backend
     env_file: .env
-    ports: ["8080:8080"]
+    environment:
+      PORT: 18443
+    ports: ["${LLAMAR_API_BIND_IP:-127.0.0.1}:${LLAMAR_API_PORT:-18443}:18443"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -66,7 +68,9 @@ services:
     build: ./backend
     command: ["node", "dist/voiceGateway.js"]
     env_file: .env
-    ports: ["8090:8090"]
+    environment:
+      VOICE_GATEWAY_PORT: 18090
+    ports: ["${VOICE_GATEWAY_BIND_IP:-127.0.0.1}:${VOICE_GATEWAY_PORT:-18090}:18090"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -75,12 +79,13 @@ services:
     restart: unless-stopped
   postgres:
     image: postgres:16-alpine
+    command: ["postgres", "-p", "15432"]
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -p 15432 -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -108,7 +113,7 @@ services:
     restart: "no"
   web:
     build: ./web
-    ports: ["3000:80"]
+    ports: ["${LLAMAR_WEB_BIND_IP:-0.0.0.0}:${LLAMAR_WEB_PORT:-18080}:18080"]
     depends_on:
       api:
         condition: service_started
