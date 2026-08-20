@@ -13,5 +13,5 @@ RUN npm install --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 RUN mkdir -p /var/lib/llamar/recordings /var/lib/llamar/exports && chown -R node:node /var/lib/llamar
 USER node
-EXPOSE 8080
+EXPOSE 18443
 CMD ["node","dist/server.js"]
