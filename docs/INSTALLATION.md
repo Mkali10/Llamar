@@ -10,6 +10,8 @@ cp .env.example .env
 openssl rand -hex 32
 uuidgen
 # Put the generated UUID in BOOTSTRAP_TENANT_ID and your email in BOOTSTRAP_ADMIN_EMAIL.
+# Set TURN_EXTERNAL_IP to the server's public IPv4 address, TURN_REALM/TURN_URLS to
+# the TURN DNS name, and generate TURN_SHARED_SECRET with: openssl rand -hex 32
 make install
 docker compose ps
 curl -fsS http://127.0.0.1:18443/health/live
