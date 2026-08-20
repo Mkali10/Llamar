@@ -15,5 +15,5 @@ docker compose exec -T postgres pg_restore --clean --if-exists --no-owner --no-a
   -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$dump"
 docker compose run --rm migrate
 docker compose up -d
-curl -fsS http://127.0.0.1:8080/health/ready
+curl -fsS "http://127.0.0.1:${LLAMAR_API_PORT:-18443}/health/ready"
 printf '\nRestore completed. Restore object storage and secrets from the same recovery set.\n'
