@@ -15,6 +15,8 @@
 - SIP/RTP allowlists and private ESL network.
 - Provider-specific health checks, channel/CPS enforcement and failover drills.
 - Recording storage encrypted with tenant prefixes, access audit and retention lifecycle.
+- coturn public IP/DNS verified with short-lived REST credentials; UDP and TCP relay paths tested from an external network.
+- Select the direct SIP profile only after measured channel/CPS testing. Use the optional Kamailio edge profile when any trigger in `SIP_SCALE_AND_KAMAILIO.md` applies.
 
 ## Release gate
 
@@ -22,5 +24,6 @@
 2. Deploy reviewed commit and run migrations.
 3. Verify liveness/readiness and tenant RLS tests.
 4. Run controlled inbound/outbound, DTMF, recording and hangup-cause tests.
-5. Confirm consent/DLT/provider policy evidence and current TRAI/DoT review.
-6. Complete rollback and restore drill before declaring production readiness.
+5. Run browser calls through host, symmetric NAT and forced TURN relay; verify two-way audio.
+6. Confirm consent/DLT/provider policy evidence and current TRAI/DoT review.
+7. Complete rollback and restore drill before declaring production readiness.
