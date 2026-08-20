@@ -9,7 +9,7 @@ services:
       bootstrap:
         condition: service_completed_successfully
     restart: unless-stopped
-    volumes: ["report_exports:/var/lib/llamar/exports"]
+    volumes: ["report_exports:/var/lib/llamar/exports", "recordings:/var/lib/llamar/recordings"]
   campaign-worker:
     build: ./backend
     command: ["node", "dist/worker.js"]
@@ -50,6 +50,17 @@ services:
       migrate:
         condition: service_completed_successfully
     volumes: ["report_exports:/var/lib/llamar/exports"]
+    restart: unless-stopped
+  recording-retention-worker:
+    build: ./backend
+    command: ["node", "dist/recordingRetentionWorker.js"]
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes: ["recordings:/var/lib/llamar/recordings"]
     restart: unless-stopped
   voice-gateway:
     build: ./backend
@@ -105,3 +116,4 @@ services:
 volumes:
   postgres_data:
   report_exports:
+  recordings:
