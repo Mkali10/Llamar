@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {HandoffComplete,HandoffRequest} from './handoffs.js';
+test('handoff requests enforce bounded priority and meaningful reasons',()=>{assert.equal(HandoffRequest.parse({reason:'customer requested an agent'}).priority,100);assert.equal(HandoffRequest.safeParse({reason:'x',priority:0}).success,false)});
+test('handoff completion accepts controlled outcomes only',()=>{assert.equal(HandoffComplete.parse({outcome:'transferred'}).outcome,'transferred');assert.equal(HandoffComplete.safeParse({outcome:'anything'}).success,false)});
