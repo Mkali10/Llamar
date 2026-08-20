@@ -89,7 +89,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 12
-    # PostgreSQL 18+ stores versioned clusters below /var/lib/postgresql.\n    # Mount the parent directory so pg_upgrade-compatible layouts are preserved.\n    volumes: ["postgres_data:/var/lib/postgresql"]
+    # PostgreSQL 18+ stores versioned clusters below /var/lib/postgresql.
+    # Mount the parent directory so pg_upgrade-compatible layouts are preserved.
+    volumes: ["postgres_data:/var/lib/postgresql"]
   coturn:
     image: coturn/coturn:4.17.2-r0
     command:
