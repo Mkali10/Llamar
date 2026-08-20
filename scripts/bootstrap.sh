@@ -4,7 +4,7 @@ export PGPASSWORD="${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
 tenant_id="${BOOTSTRAP_TENANT_ID:?BOOTSTRAP_TENANT_ID is required}"
 tenant_name="${BOOTSTRAP_TENANT_NAME:?BOOTSTRAP_TENANT_NAME is required}"
 admin_email="${BOOTSTRAP_ADMIN_EMAIL:?BOOTSTRAP_ADMIN_EMAIL is required}"
-psql -v ON_ERROR_STOP=1 -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+psql -v ON_ERROR_STOP=1 -h postgres -p "${POSTGRES_PORT:-15432}" -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
   --set=tenant_id="$tenant_id" --set=tenant_name="$tenant_name" --set=admin_email="$admin_email" <<'SQL'
 INSERT INTO tenants(id,legal_name,display_name,status)
 VALUES (:'tenant_id'::uuid,:'tenant_name',:'tenant_name','active')
