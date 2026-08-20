@@ -90,6 +90,30 @@ services:
       timeout: 5s
       retries: 12
     volumes: ["postgres_data:/var/lib/postgresql/data"]
+  coturn:
+    image: coturn/coturn:4.17.2-r0
+    command:
+      - --log-file=stdout
+      - --realm=${TURN_REALM}
+      - --server-name=${TURN_REALM}
+      - --use-auth-secret
+      - --static-auth-secret=${TURN_SHARED_SECRET}
+      - --external-ip=${TURN_EXTERNAL_IP}
+      - --listening-port=${TURN_PORT:-13478}
+      - --min-port=${TURN_RELAY_MIN:-49160}
+      - --max-port=${TURN_RELAY_MAX:-49260}
+      - --fingerprint
+      - --no-cli
+      - --no-multicast-peers
+      - --no-loopback-peers
+      - --stale-nonce=600
+      - --user-quota=12
+      - --total-quota=1200
+    ports:
+      - "${TURN_PORT:-13478}:${TURN_PORT:-13478}/udp"
+      - "${TURN_PORT:-13478}:${TURN_PORT:-13478}/tcp"
+      - "${TURN_RELAY_MIN:-49160}-${TURN_RELAY_MAX:-49260}:${TURN_RELAY_MIN:-49160}-${TURN_RELAY_MAX:-49260}/udp"
+    restart: unless-stopped
   migrate:
     image: postgres:16-alpine
     env_file: .env
