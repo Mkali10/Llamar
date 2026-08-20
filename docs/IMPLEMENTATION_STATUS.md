@@ -15,6 +15,10 @@
 
 ## Product implementation — active
 
+Current reliability additions include authenticated coturn credentials, WebRTC ICE configuration,
+media-node heartbeat/capacity registration, drain mode and fail-closed CPS/channel reservations.
+See `OPERATOR_TRAINING.md` for configuration and operational training.
+
 The primary application stack is Node.js/TypeScript + React with FreeSWITCH. The earlier
 unapproved Python control-plane prototype has been removed; its history remains recoverable in Git.
 
