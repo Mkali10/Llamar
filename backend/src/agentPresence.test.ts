@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {AgentPresenceUpdate,AgentSessionStart} from './agentPresence.js';
+test('agent presence accepts operational states and validates extensions',()=>{assert.equal(AgentSessionStart.safeParse({extension:'1001',transport:'webrtc'}).success,true);assert.equal(AgentSessionStart.safeParse({extension:'10'}).success,false);assert.equal(AgentPresenceUpdate.safeParse({presence:'wrap_up'}).success,true);assert.equal(AgentPresenceUpdate.safeParse({presence:'offline'}).success,false)});
