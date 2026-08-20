@@ -10,6 +10,7 @@
     "worker": "node dist/worker.js",
     "knowledge-worker": "node dist/knowledgeWorker.js",
     "notification-worker": "node dist/notificationWorker.js",
+    "integration-worker": "node dist/integrationWorker.js",
     "report-worker": "node dist/reportWorker.js",
     "recording-retention-worker": "node dist/recordingRetentionWorker.js",
     "voice-gateway": "node dist/voiceGateway.js",
