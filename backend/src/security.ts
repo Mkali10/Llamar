@@ -18,5 +18,6 @@ export async function verifyToken(token: string): Promise<Principal> {
 }
 
 export function can(principal: Principal, permission: string): boolean {
-  return principal.role === 'platform_admin' || principal.permissions.includes(permission);
+  return ['platform_admin','tenant_owner','tenant_admin'].includes(principal.role) || principal.permissions.includes(permission);
 }
+export function maskSensitive(value:string|null|undefined){if(!value)return '';if(value.length<=4)return '*'.repeat(value.length);return `${'*'.repeat(Math.min(8,value.length-4))}${value.slice(-4)}`}
