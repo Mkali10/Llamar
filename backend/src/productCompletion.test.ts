@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {maxIvrBytes,minIvrBytes,ivrMime,ivrPath} from './ivrAudio.js';import {billedMinutes} from './usageBilling.js';import {maskSensitive} from './security.js';
+test('IVR upload limits, MIME and traversal protection',()=>{assert.equal(minIvrBytes,1024);assert.equal(maxIvrBytes,50*1024*1024);assert.equal(ivrMime('mp3'),'audio/mpeg');assert.throws(()=>ivrPath('../secret'))});
+test('billing rounds started minutes and does not bill zero seconds',()=>{assert.equal(billedMinutes(0),0);assert.equal(billedMinutes(1),1);assert.equal(billedMinutes(60),1);assert.equal(billedMinutes(61),2)});
+test('sensitive values retain only last four characters',()=>{assert.equal(maskSensitive('+919876543210'),'********3210');assert.equal(maskSensitive('123'),'***')});
